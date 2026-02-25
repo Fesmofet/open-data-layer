@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/create_committee.json",
+  "title": "create_committee",
+  "description": "Payload for od.governance.v1 action create_committee (genesis, once)",
+  "type": "object",
+  "required": ["v", "action", "network", "app", "committee_id", "threshold", "members"],
+  "additionalProperties": true,
+  "properties": {
+    "v": { "type": "integer", "const": 1 },
+    "action": { "type": "string", "const": "create_committee" },
+    "network": { "type": "string", "description": "e.g. hive-mainnet" },
+    "app": { "type": "string", "description": "e.g. open-data" },
+    "committee_id": { "type": "string", "minLength": 1 },
+    "threshold": { "type": "integer", "minimum": 1 },
+    "members": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 32 },
+      "minItems": 1
+    },
+    "policy_hash": { "type": "string" },
+    "nonce": { "type": "string" }
+  }
+}

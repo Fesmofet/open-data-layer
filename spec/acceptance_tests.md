@@ -25,12 +25,12 @@ Canonical event order is:
 ### AC-I3: Revote replaces previous vote
 - **Setup**: Update U exists, voter V has valid role.
 - **Events**: `update_vote` +1, then `update_vote` -1 by same voter.
-- **Expect**: Single active vote for `(U, V)`; weight adjusted by delta only.
+- **Expect**: Single active raw validity vote for `(U, V)` remains (latest value stored).
 
-### AC-I4: Missing role rejects vote
-- **Setup**: Update U exists, voter has no role.
-- **Events**: `update_vote` by voter.
-- **Expect**: Rejected with `ROLE_REQUIRED`.
+### AC-I4: Missing role does not reject raw vote ingestion
+- **Setup**: Update U exists, voter currently has no role in governance context.
+- **Events**: `update_vote` by voter with valid payload.
+- **Expect**: Event is ingested as raw vote state; role impact is resolved later at query time.
 
 ### AC-I5: Full reindex determinism
 - **Setup**: Mixed stream with duplicates and revotes.
@@ -80,7 +80,7 @@ Canonical event order is:
 ### AC-I14: Muted post author is not persisted in posts dataset
 - **Setup**: Post author P is in muted list of effective owner/moderator set at post block time.
 - **Action**: Index post event from P.
-- **Expect**: Post is skipped from queryable posts dataset.
+- **Expect**: Parsed post and linkage are stored; muted filtering is applied in query phase.
 
 ### AC-I15: Follow and unfollow produce current edge state
 - **Setup**: Account A follows B, then unfollows B.
@@ -106,6 +106,31 @@ Canonical event order is:
 - **Setup**: Account A exists; two update events arrive (v1 then v2).
 - **Action**: Index both in canonical order.
 - **Expect**: single normalized `accounts_current` record reflects latest deterministic values for `name`, `alias`, `json_metadata`, `profile_image`.
+
+### AC-I20: rank_vote owner always wins
+- **Setup**: Update U has rank values from trusted/admin, then owner sets another rank value.
+- **Action**: Compute ranking signal for U.
+- **Expect**: decisive ranking signal equals latest owner `rank` value.
+
+### AC-I21: rank_vote admin LWAW when owner absent
+- **Setup**: No owner rank vote for update U; two admins set different rank values in sequence.
+- **Action**: Compute ranking signal for U.
+- **Expect**: decisive ranking signal equals latest admin `rank` value by canonical order.
+
+### AC-I22: rank_vote trusted LWTW when owner/admin absent
+- **Setup**: No owner/admin rank vote for update U; trusted users set different rank values in sequence.
+- **Action**: Compute ranking signal for U.
+- **Expect**: decisive ranking signal equals latest trusted `rank` value by canonical order.
+
+### AC-I23: rank_vote does not change validity status
+- **Setup**: Update U has fixed validity outcome from `update_vote`.
+- **Action**: Apply several `rank_vote` events.
+- **Expect**: U `VALID/REJECTED` status remains unchanged; only ranking signal changes.
+
+### AC-I24: Tie-break when rank_score is equal
+- **Setup**: Updates U1 and U2 have identical final `rank_score` in same `rank_context`.
+- **Action**: Compute ordered ranking list.
+- **Expect**: tie-break uses deterministic order: decisive rank vote canonical order, then update canonical order, then `update_id ASC`.
 
 ---
 
@@ -155,6 +180,16 @@ Canonical event order is:
 - **Setup**: Cached snapshot exists for governance object G (`snapshot_hash = H1`).
 - **Action**: Apply update to governance object G, then execute same query.
 - **Expect**: Previous snapshot invalidated, new snapshot hash `H2 != H1`, response reflects new governance rules.
+
+### AC-Q10: Missing decisive role in context for validity resolution
+- **Setup**: Query context has no owner/admin/trusted vote applicable for update U.
+- **Action**: Resolve validity in query service.
+- **Expect**: Query returns fallback validity behavior; if strict mode is enabled, returns `ROLE_REQUIRED`.
+
+### AC-Q11: Missing decisive role in context for rank resolution
+- **Setup**: Query context has no owner/admin/trusted rank vote applicable for update U.
+- **Action**: Resolve rank in query service.
+- **Expect**: Query returns fallback ranking behavior; if strict mode is enabled, returns `ROLE_REQUIRED_FOR_RANK`.
 
 ---
 

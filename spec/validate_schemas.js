@@ -10,6 +10,7 @@ const requiredByAction = {
   create_committee: ["v", "action", "network", "app", "committee_id", "threshold", "members"],
   update_create: ["v", "action", "update_id", "object_id", "update_type", "creator", "transaction_id"],
   update_vote: ["v", "action", "update_id", "voter", "vote", "transaction_id"],
+  rank_vote: ["v", "action", "update_id", "voter", "rank", "transaction_id"],
 };
 
 let failed = 0;
@@ -46,7 +47,7 @@ function checkSchema(name) {
   }
 }
 
-["object_create", "object_type_create", "object_type_update", "create_committee", "update_create", "update_vote"].forEach(checkSchema);
+["object_create", "object_type_create", "object_type_update", "create_committee", "update_create", "update_vote", "rank_vote"].forEach(checkSchema);
 
 if (failed) {
   process.exit(1);

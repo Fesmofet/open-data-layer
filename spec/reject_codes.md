@@ -34,8 +34,8 @@ Indexer MUST persist reject code whenever an event is not applied to neutral sta
 |------|------|
 | `OBJECT_NOT_FOUND` | Referenced `object_id` does not exist (for `update_create`). |
 | `UPDATE_NOT_FOUND` | Referenced `update_id` does not exist (for `update_vote`). |
-| `ROLE_REQUIRED` | Voter has no valid role at vote event time. |
 | `INVALID_UPDATE_PAYLOAD` | Update payload failed schema or business validation. |
+| `INVALID_RANK_PAYLOAD` | `rank_vote` payload failed schema or business validation. |
 
 ### Hive social/account ingestion
 
@@ -43,7 +43,7 @@ Indexer MUST persist reject code whenever an event is not applied to neutral sta
 |------|------|
 | `INVALID_SOCIAL_PAYLOAD` | `mute`, `follow/unfollow`, or `reblog` payload is malformed or misses required fields. |
 | `INVALID_ACCOUNT_PAYLOAD` | `create_account` or `update_account` (v1/v2) payload cannot be parsed into normalized account projection. |
-| `POST_AUTHOR_MUTED_BY_GOVERNANCE` | Parsed post author is muted by effective governance owner/moderator set at post block time; post is skipped from queryable posts dataset. |
+| `POST_AUTHOR_MUTED_BY_GOVERNANCE` | Query-time governance filtering reason: post author is muted by effective owner/moderator set in current governance context. |
 
 ### Generic write-path codes
 
@@ -61,6 +61,8 @@ Query service MUST return stable machine-readable codes for governance resolutio
 | `GOVERNANCE_NOT_FOUND` | Requested governance object or profile does not exist. |
 | `INVALID_GOVERNANCE_REFERENCE` | Governance input format is invalid or references unsupported target. |
 | `GOVERNANCE_RESOLUTION_FAILED` | Governance graph cannot be resolved (cycle/depth/consistency violation). |
+| `ROLE_REQUIRED` | No decisive role is present in current governance context for validity resolution. |
+| `ROLE_REQUIRED_FOR_RANK` | No decisive role is present in current governance context for rank resolution. |
 | `GLOBAL_POLICY_VIOLATION` | Request attempts to bypass or conflict with mandatory global policy. |
 | `MASK_EVALUATION_TIMEOUT` | Query mask computation exceeded configured timeout budget. |
 | `RATE_LIMIT_EXCEEDED` | Request exceeded configured rate limit. |

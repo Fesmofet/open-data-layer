@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/rank_vote.json",
+  "title": "rank_vote",
+  "description": "Payload for od.updates.v1 action rank_vote (ranking channel only)",
+  "type": "object",
+  "required": ["v", "action", "update_id", "voter", "rank", "transaction_id"],
+  "additionalProperties": true,
+  "properties": {
+    "v": { "type": "integer", "const": 1 },
+    "action": { "type": "string", "const": "rank_vote" },
+    "update_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "voter": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-z0-9.-]+$"
+    },
+    "rank": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "description": "Absolute rank score assigned by voter (1..10000)"
+    },
+    "rank_context": {
+      "type": "string",
+      "maxLength": 64,
+      "default": "default",
+      "description": "Optional ranking scope, e.g. gallery/search/feed"
+    },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

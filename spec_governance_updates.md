@@ -31,7 +31,7 @@ Define a deterministic architecture for:
 Namespaces:
 
 - `od.objects.v1` (`object_create`)
-- `od.updates.v1` (`update_create`, `update_vote`)
+- `od.updates.v1` (`update_create`, `update_vote`, `rank_vote`)
 - Governance is represented as normal objects with `object_type = governance`.
 - There is no separate governance namespace in V2.
 
@@ -40,6 +40,7 @@ Core entities:
 - `object`: `object_id`, `object_type`, `creator`, `transaction_id`
 - `update`: `update_id`, `object_id`, `update_type`, payload fields, `creator`, `transaction_id`
 - `vote`: `(update_id, voter) -> effective_vote`
+- `rank_vote`: `(update_id, voter, rank_context) -> rank_score`
 - `governance declaration`: object with `object_type = governance` that defines roles, trust, and moderation rules
 - `object_type` (new entity): type descriptor with:
   - `name` (for example `product`, `recipe`)
@@ -62,14 +63,27 @@ Core entities:
   - target object's `object_type` must exist in `object_type` registry,
   - `update_type` must be listed in that type's `supported_updates`,
   - otherwise reject with `UNSUPPORTED_UPDATE_TYPE`.
-- `update_create` starts as `weight = 0`, `status = VALID`.
-- One active vote per `(update_id, voter)`.
-- Revote is replace:
-  - `delta = new_effective_vote - old_effective_vote`
-  - `weight += delta`
-- Dynamic status:
-  - `VALID` if `weight >= 0`
-  - `REJECTED` if `weight < 0`
+- One active raw validity vote per `(update_id, voter)`; revote is replace.
+- Indexer stores raw validity votes and canonical event metadata.
+- `VALID/REJECTED` is resolved at query time from governance context/snapshot.
+- Query-time validity hierarchy:
+  1. `owner` always wins.
+  2. if owner absent, latest `admin` wins (LWAW).
+  3. if owner/admin absent, latest `trusted` wins (LWTW).
+- Latest vote is determined by canonical order:
+  `(block_num, trx_index, op_index, transaction_id)`.
+
+### 4.2.1 Rank vote semantics (separate channel)
+
+- `rank_vote` does not change `VALID/REJECTED` status.
+- `rank_vote` updates ranking channel only.
+- One active raw rank vote per `(update_id, voter, rank_context)`; revote is replace.
+- Hierarchy for decisive ranking signal (same as approve/reject policy):
+  1. `owner` always wins.
+  2. if owner absent, latest `admin` wins (LWAW).
+  3. if owner/admin absent, latest `trusted` wins (LWTW).
+- Latest vote is determined by canonical order:
+  `(block_num, trx_index, op_index, transaction_id)`.
 
 ### 4.3 Governance object ownership rules
 
@@ -106,8 +120,7 @@ Core entities:
 - If a post contains potential object references, indexer stores linkage:
   - `post_id -> object_type`
   - `post_id -> object_ref` (object id/link)
-- Before persisting parsed post into the queryable posts dataset, indexer checks post author against muted lists of effective governance `owner` and `moderator` accounts at post block time.
-- If author is muted by owner/moderator governance set, post is not persisted into queryable posts dataset.
+- Muted-based inclusion/exclusion of posts is resolved at query time from governance context/snapshot.
 
 ### 4.8 Hive social/account ingestion
 
@@ -187,7 +200,8 @@ Each response is filtered by two governance layers:
 - `events_log` (canonical raw events + apply/reject result)
 - `objects_current`
 - `updates_current`
-- `update_votes_current`
+- `update_votes_raw_current`
+- `rank_votes_raw_current`
 - `governance_objects_current`
 - `governance_resolution_cache` (query layer)
 - `query_policy_profiles` (optional mapping for subscription governance defaults)
@@ -224,7 +238,7 @@ flowchart TD
 - Only main governance can create/update `object_type` entities.
 - `update_create` is accepted only when `update_type` is listed in `supported_updates` for target object type.
 - Hive social/account operations (`mute`, `follow/unfollow`, `reblog`, `create_account`, `update_account v1/v2`) are parsed deterministically into dedicated datasets.
-- Parsed post is excluded when author is muted by effective governance owner/moderator set at post block time.
+- Post inclusion/exclusion by muted rules is resolved in query layer from governance context/snapshot.
 
 ## 10.1 Non-functional targets
 
@@ -240,19 +254,20 @@ Final ranking must be deterministic and stable for identical inputs.
 
 For each candidate after governance masking:
 
-- `final_score = (w_text * text_score) + (w_geo * geo_score) + (w_vote * normalized_vote_weight) + freshness_bonus`
+- `final_score = (w_text * text_score) + (w_geo * geo_score) + (w_vote * normalized_vote_weight) + (w_rank * normalized_rank_score) + freshness_bonus`
 
 Tie-break order (mandatory):
 
 1. `final_score DESC`
-2. `normalized_vote_weight DESC`
-3. `block_num DESC`
-4. `trx_index DESC`
-5. `update_id ASC`
+2. `rank_score DESC`
+3. decisive rank vote canonical order (`block_num DESC`, `trx_index DESC`, `op_index DESC`, `transaction_id DESC`)
+4. `normalized_vote_weight DESC`
+5. update canonical order (`block_num DESC`, `trx_index DESC`, `op_index DESC`, `transaction_id DESC`)
+6. `update_id ASC`
 
 Where:
 
-- weights (`w_text`, `w_geo`, `w_vote`) are versioned configuration,
+- weights (`w_text`, `w_geo`, `w_vote`, `w_rank`) are versioned configuration,
 - freshness function and normalization are versioned configuration,
 - ranking config version must be included in query metadata and cache key.
 

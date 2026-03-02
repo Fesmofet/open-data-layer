@@ -13,10 +13,11 @@ V2 is a two-service model:
 
 - **schemas/** — JSON Schema for blockchain events.
   - includes draft `object_type_create.json` and `object_type_update.json` for `object_type` registry lifecycle.
+  - includes `rank_vote.json` for ranking channel votes.
 - **reject_codes.md** — Canonical processing and API/query error codes.
 - **object_uniqueness.md** — object_id uniqueness and collision rules.
 - **object_type_entity.md** — governance-controlled `object_type` registry (`name`, `supported_updates`, `supposed_updates`).
-- **vote_semantics.md** — revote = replace, dynamic validity.
+- **vote_semantics.md** — query-time validity and ranking vote resolution.
 - **governance_bootstrap.md** — V2 governance initialization model (bootstrap replacement note).
 - **governance_resolution.md** — role precedence, trust graph traversal, cache invalidation.
 - **services_architecture.md** — indexer/query boundary and contract.
@@ -27,7 +28,7 @@ V2 is a two-service model:
 ## Namespaces
 
 - `od.objects.v1` — object writes (`object_create`)
-- `od.updates.v1` — update writes (`update_create`, `update_vote`)
+- `od.updates.v1` — update writes (`update_create`, `update_vote`, `rank_vote`)
 - Governance declarations are written as objects with `object_type = governance` (no separate governance namespace).
 
 ## Core references

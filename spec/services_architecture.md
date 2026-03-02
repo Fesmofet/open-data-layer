@@ -24,7 +24,7 @@ This split is mandatory for scalability and deterministic governance masking.
 Indexer does not apply tenant/request governance filtering.
 Indexer does validate `update_create` against `object_type.supported_updates`.
 Indexer parses Hive post metadata/body and extracts potential object references.
-Indexer skips persisting posts whose author is muted by governance owner/moderator set resolved at post block time.
+Indexer persists parsed posts and moderation-related raw state; muted filtering is resolved at query time.
 Indexer parses and persists Hive social/account operations:
 - `mute` relations,
 - `follow` / `unfollow` relations,
@@ -60,6 +60,7 @@ Minimum required datasets:
   - mutes
   - follows
   - reblogs
+- raw validity/rank votes for query-time resolution
 - accounts projection (v1/v2 unified):
   - `account`
   - `name`

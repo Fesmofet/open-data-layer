@@ -1,56 +1,89 @@
-# Vote semantics: revote = replace, dynamic validity
+# Vote semantics: query-time validity and rank resolution
 
-**Note:** In V2, governance masking is applied by the Query/Masking Service.  
-Vote write semantics below describe Indexer Service behavior for neutral state.
+Votes are stored as neutral raw events by the Indexer Service.
+All role-based interpretation is resolved in Query/Masking Service using governance context/snapshot.
 
-## One active vote per (update_id, voter)
+## A) Validity channel (`update_vote`)
 
-- Uniqueness key: `(update_id, voter)`.
-- At any time, at most **one** vote from `voter` counts toward `weight` for `update_id`.
-- Stored as current vote row: `(update_id, voter) -> effective_vote, raw_vote, block_time`.
+### Storage model
 
-## Revote = replace
+- One active raw validity vote per `(update_id, voter)`.
+- Revote replaces previous vote for the same key.
+- Indexer stores raw vote payload and canonical event metadata only.
 
-When a new `update_vote` event is processed for the same `(update_id, voter)`:
+### Query-time decisive resolution
 
-1. Load current vote for `(update_id, voter)` if any; let `old_effective_vote` be its effective value, or 0 if none.
-2. Compute `new_effective_vote = sign(vote) * role_weight(voter_role_at_vote_block_time)`. If voter has no role, reject with `ROLE_REQUIRED` and do not change state.
-3. Delta: `delta = new_effective_vote - old_effective_vote`.
-4. Update: `weight(update_id) += delta`.
-5. Persist current vote for `(update_id, voter)` as the new vote (replace previous).
-6. Recompute status (see below).
+Validity is derived at query time with tiered hierarchy:
 
-No separate "remove vote" action required: a revote with opposite sign (or zero weight) effectively replaces the previous contribution.
+1. `owner` always wins.
+2. if no owner vote exists, latest `admin` wins (LWAW).
+3. if no owner/admin vote exists, latest `trusted` wins (LWTW).
+4. if no decisive vote exists, fallback is baseline `VALID`.
 
-## Dynamic validity
+`latest` is determined by canonical order:
+`(block_num, trx_index, op_index, transaction_id)`.
 
-After every applied change that affects an update's weight (create or vote/revote):
+### Output
 
-- If `weight(update_id) >= 0` then `status(update_id) = VALID`.
-- If `weight(update_id) < 0` then `status(update_id) = REJECTED`.
+- Query layer derives `final_status` (`VALID` or `REJECTED`) from decisive validity vote.
+- Indexer does not persist authoritative `final_status` from role logic.
 
-Status can change multiple times over time (VALID → REJECTED → VALID etc.) as votes are added or replaced. No finalization window: validity is always current.
+## B) Ranking channel (`rank_vote`)
 
-## Effective vote formula
+`rank_vote` is a separate operation and does not mutate `final_status`.
 
-- `effective_vote = sign(vote) * role_weight(role)`.
-- `vote` is the raw vote from payload (+1 or -1, or extended per schema).
-- `role` is the voter's role at **vote event block time** (not "now").
-- `role_weight(role)` is from the role matrix (e.g. reviewer=1, trusted=2). If no role, the vote is not applied and event is rejected with `ROLE_REQUIRED`.
+### Payload contract (logical)
 
-## Initial state for update_create
+- Namespace: `od.updates.v1`
+- Action: `rank_vote`
+- Required fields:
+  - `v`
+  - `action = rank_vote`
+  - `update_id`
+  - `voter`
+  - `rank` (`1..10000`)
+  - `transaction_id`
+- Optional:
+  - `rank_context` (default `default`)
 
-- On `update_create`: `weight = 0`, `status = VALID` (since 0 >= 0).
+### Storage model
 
-## LWW for single-value fields (same creator)
+- One active raw rank vote per `(update_id, voter, rank_context)`.
+- Revote replaces previous vote for the same key.
 
-For update types that target a single-value field (winner is exactly one value):
+### Query-time decisive ranking resolution
+
+Ranking uses the same hierarchy:
+
+1. `owner` always wins.
+2. if no owner vote exists, latest `admin` wins (LWAW).
+3. if no owner/admin vote exists, latest `trusted` wins (LWTW).
+
+`latest` is determined by canonical order:
+`(block_num, trx_index, op_index, transaction_id)`.
+
+### Ranking output
+
+- Decisive rank vote yields `rank_score` (`1..10000`) per update/context.
+- `rank_score` is used with other ranking signals.
+- Validity remains controlled by validity channel.
+
+### Tie-break when `rank_score` is equal
+
+For updates with equal `rank_score` in same `rank_context`:
+
+1. latest decisive rank vote by canonical order (`block_num DESC`, `trx_index DESC`, `op_index DESC`, `transaction_id DESC`);
+2. latest update event by canonical order (`block_num DESC`, `trx_index DESC`, `op_index DESC`, `transaction_id DESC`);
+3. `update_id ASC`.
+
+## C) LWW for single-value fields (same creator)
+
+For update types targeting a single-value field:
 
 - Key scope: `(object_id, field_key, creator)`.
-- If the same `creator` submits a newer `update_create` for the same `field_key` on the same object, the previous current update for that key scope is replaced by the newer one.
-- This replacement is deterministic and equivalent to last-write-wins (LWW) within that creator scope.
+- Newer `update_create` from same creator for same field replaces previous current update in that scope.
 
 ## Determinism
 
-- Same event stream must produce same `weight` and `status` after each event.
-- Role is resolved at `vote_block_time` so reindex gives same result.
+- Same event stream must produce identical stored raw vote state.
+- Same governance context/snapshot must produce identical `final_status` and ranking output.

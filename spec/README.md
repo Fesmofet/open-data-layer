@@ -20,6 +20,7 @@ V2 is a two-service model:
 - **governance_bootstrap.md** — V2 governance initialization model (bootstrap replacement note).
 - **governance_resolution.md** — role precedence, trust graph traversal, cache invalidation.
 - **services_architecture.md** — indexer/query boundary and contract.
+- **social_account_ingestion.md** — social/account ingestion schema and v1/v2 metadata merge rules.
 - **overflow_strategy.md** — Hive baseline publishing and Arweave overflow policy.
 - **acceptance_tests.md** — acceptance test cases across both services.
 

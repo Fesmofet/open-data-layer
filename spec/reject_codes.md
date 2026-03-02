@@ -37,6 +37,14 @@ Indexer MUST persist reject code whenever an event is not applied to neutral sta
 | `ROLE_REQUIRED` | Voter has no valid role at vote event time. |
 | `INVALID_UPDATE_PAYLOAD` | Update payload failed schema or business validation. |
 
+### Hive social/account ingestion
+
+| Code | When |
+|------|------|
+| `INVALID_SOCIAL_PAYLOAD` | `mute`, `follow/unfollow`, or `reblog` payload is malformed or misses required fields. |
+| `INVALID_ACCOUNT_PAYLOAD` | `create_account` or `update_account` (v1/v2) payload cannot be parsed into normalized account projection. |
+| `POST_AUTHOR_MUTED_BY_GOVERNANCE` | Parsed post author is muted by effective governance owner/moderator set at post block time; post is skipped from queryable posts dataset. |
+
 ### Generic write-path codes
 
 | Code | When |

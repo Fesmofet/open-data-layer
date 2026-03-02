@@ -17,6 +17,7 @@ Define a deterministic architecture for:
   `(block_num, trx_index, op_index, transaction_id)`.
 - Validates schema/business invariants for write events.
 - Stores neutral materialized state without tenant governance masking.
+- Parses Hive posts (metadata + body) and stores extracted object references.
 
 ### 2.2 Query/Masking Service
 
@@ -99,6 +100,40 @@ Core entities:
 - `supposed_updates` is descriptive metadata for automation opportunities.
 - Indexer does not execute automation from `supposed_updates`; it only stores and exposes this metadata.
 
+### 4.7 Hive post parsing and moderation pre-filter
+
+- Indexer parses Hive post metadata and body.
+- If a post contains potential object references, indexer stores linkage:
+  - `post_id -> object_type`
+  - `post_id -> object_ref` (object id/link)
+- Before persisting parsed post into the queryable posts dataset, indexer checks post author against muted lists of effective governance `owner` and `moderator` accounts at post block time.
+- If author is muted by owner/moderator governance set, post is not persisted into queryable posts dataset.
+
+### 4.8 Hive social/account ingestion
+
+Indexer additionally parses and persists Hive operations:
+
+- `mute`
+- `follow`
+- `unfollow`
+- `reblog`
+- `create_account`
+- `update_account` (v1/v2)
+
+Normalization rules:
+
+- `follow` / `unfollow` must be materialized as current edge state.
+- `mute` must be materialized as current mute state.
+- `reblog` must be stored as evented relation between account and post.
+- account v1/v2 payloads must be normalized into one account projection record.
+
+Current required account projection fields:
+
+- `name`
+- `alias`
+- `json_metadata` (raw)
+- `profile_image` extracted from `json_metadata`
+
 ## 5. Query-time governance masking
 
 ### 5.1 Mask inputs
@@ -118,6 +153,16 @@ Each response is filtered by two governance layers:
 - Data domain roles: `owner`, `admin`, `trusted`.
 - Social domain role: `moderator`.
 - Domain-specific effects are defined in `spec/governance_resolution.md`.
+
+### 5.4 Two-phase query execution
+
+1. Candidate phase:
+   - Apply text + geo + structural filters to neutral indexes.
+   - Produce bounded candidate set with base relevance score.
+2. Governance phase:
+   - Resolve `resolved_governance_snapshot`.
+   - Apply global + request governance masks.
+   - Compute final winners and ranking.
 
 ## 6. Governance resolution and caching
 
@@ -146,6 +191,12 @@ Each response is filtered by two governance layers:
 - `governance_objects_current`
 - `governance_resolution_cache` (query layer)
 - `query_policy_profiles` (optional mapping for subscription governance defaults)
+- `posts_parsed_current`
+- `post_object_links`
+- `social_follows_current`
+- `social_mutes_current`
+- `social_reblogs_log`
+- `accounts_current` (normalized v1/v2 projection)
 
 ## 9. Processing flow
 
@@ -172,4 +223,36 @@ flowchart TD
 - For single fields, repeated updates by same creator resolve via deterministic LWW.
 - Only main governance can create/update `object_type` entities.
 - `update_create` is accepted only when `update_type` is listed in `supported_updates` for target object type.
+- Hive social/account operations (`mute`, `follow/unfollow`, `reblog`, `create_account`, `update_account v1/v2`) are parsed deterministically into dedicated datasets.
+- Parsed post is excluded when author is muted by effective governance owner/moderator set at post block time.
+
+## 10.1 Non-functional targets
+
+- Query service target latency: `P95 < 200ms` for standard two-phase query execution under production workload profile.
+- Indexer capacity target:
+  - at least `10,000,000` object creates/day,
+  - at least `350,000,000` update creates/day.
+- Capacity compliance may be achieved via horizontal scaling, but deterministic behavior requirements remain unchanged.
+
+## 11. Deterministic final ranking formula
+
+Final ranking must be deterministic and stable for identical inputs.
+
+For each candidate after governance masking:
+
+- `final_score = (w_text * text_score) + (w_geo * geo_score) + (w_vote * normalized_vote_weight) + freshness_bonus`
+
+Tie-break order (mandatory):
+
+1. `final_score DESC`
+2. `normalized_vote_weight DESC`
+3. `block_num DESC`
+4. `trx_index DESC`
+5. `update_id ASC`
+
+Where:
+
+- weights (`w_text`, `w_geo`, `w_vote`) are versioned configuration,
+- freshness function and normalization are versioned configuration,
+- ranking config version must be included in query metadata and cache key.
 

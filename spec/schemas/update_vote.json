@@ -4,15 +4,14 @@
   "title": "update_vote",
   "description": "Payload for od.updates.v1 action update_vote",
   "type": "object",
-  "required": ["v", "action", "update_id", "voter", "vote", "transaction_id"],
+  "required": ["v", "action", "update_id", "voter", "percent", "transaction_id"],
   "additionalProperties": true,
   "properties": {
     "v": { "type": "integer", "const": 1 },
     "action": { "type": "string", "const": "update_vote" },
     "update_id": { "type": "string", "minLength": 1, "maxLength": 256 },
     "voter": { "type": "string", "minLength": 1, "maxLength": 32 },
-    "vote": { "type": "integer", "description": "Sign: positive = support, negative = reject; magnitude may be ignored and role_weight used" },
-    "reason": { "type": "string" },
-    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 64 }
+    "percent": { "type": "integer", "minimum": -10000, "maximum": 10000 },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
   }
 }

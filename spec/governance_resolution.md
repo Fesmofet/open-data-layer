@@ -53,6 +53,29 @@ The resolved mask output must include:
 - role map for voting and moderation interpretation,
 - metadata (source governance refs, resolved depth, version/hash).
 
+### resolved_governance_snapshot (normative format)
+
+Snapshot object:
+
+- `snapshot_hash`: deterministic hash of full resolved snapshot content.
+- `governance_ref`: request governance reference used for resolution.
+- `global_policy_version`: applied global policy version.
+- `resolution_algo_version`: governance resolution algorithm version.
+- `resolved_at_block`: block height (or index checkpoint) used for consistency.
+- `ttl_seconds`: snapshot TTL.
+- `expires_at_unix`: absolute expiry timestamp.
+- `allow_sets`:
+  - `data_domain_accounts`
+  - `social_domain_accounts`
+- `deny_sets`:
+  - `global_denies`
+  - `request_denies`
+- `role_map`: effective account-to-role mapping by domain.
+- `moderation_sets`:
+  - `owner_accounts`
+  - `moderator_accounts`
+  - `muted_subject_accounts`
+
 ## 7) Caching and invalidation
 
 ### Cache key
@@ -62,6 +85,7 @@ At minimum:
 - governance reference(s),
 - global policy version,
 - resolution algorithm version.
+- index checkpoint / resolved_at_block.
 
 ### Invalidation triggers
 
@@ -70,13 +94,15 @@ At minimum:
 - trust edge change,
 - global policy update,
 - algorithm version change.
+- TTL expiry (`now >= expires_at_unix`).
+- index checkpoint change when strict consistency mode is enabled.
 
-## 9) Governance ownership constraint
+## 8) Governance ownership constraint
 
 - Governance object updates and governance update votes are valid only when authored by the governance object `creator`.
 - Any non-creator governance mutation attempt must fail with `UNAUTHORIZED_GOVERNANCE_OP`.
 
-## 8) Determinism and observability
+## 9) Determinism and observability
 
 - Same inputs must produce same mask hash.
 - Resolution logs should include:

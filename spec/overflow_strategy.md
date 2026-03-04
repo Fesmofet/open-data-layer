@@ -1,15 +1,15 @@
-# Overflow Strategy (Hive + Arweave)
+# Overflow Strategy (Hive + IPFS, Arweave deferred)
 
 ## 1) Goal
 
-Provide a deterministic policy for when publishing stays on Hive and when it offloads to Arweave.
+Provide a deterministic policy for when publishing stays on Hive and when it offloads to IPFS.
 
 ## 2) Baseline and emergency paths
 
 - Baseline path: Hive publish flow.
-- Emergency/offload path: Arweave.
+- Emergency/offload path: IPFS.
 
-Arweave is used for:
+IPFS is used for:
 
 - large initial import files,
 - backlog drain when publish queue growth exceeds policy limits.
@@ -23,7 +23,7 @@ Overflow policy should use configurable thresholds, for example:
 - queue age threshold,
 - estimated publish completion SLA breach.
 
-If one or more thresholds are exceeded, scheduler may switch batch to Arweave.
+If one or more thresholds are exceeded, scheduler may switch batch to IPFS.
 
 ## 4) Chunking and status lifecycle
 
@@ -50,8 +50,15 @@ If one or more thresholds are exceeded, scheduler may switch batch to Arweave.
 
 - Offloaded batches must remain discoverable by index/query flow through recorded references.
 - Query behavior must remain deterministic regardless of Hive-only vs overflow path used at publish time.
+- IPFS should be treated as origin/source layer; CDN may be used for distribution acceleration.
 
-## 8) Minimum observability
+## 8) Arweave integration status
+
+- Arweave remains a strategic permanence option.
+- Arweave integration is deferred in current implementation scope due to tooling/throughput complexity.
+- Design should preserve extension points to add Arweave as optional secondary permanence backend later.
+
+## 9) Minimum observability
 
 Required metrics:
 

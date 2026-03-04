@@ -43,6 +43,7 @@ Indexer MUST persist reject code whenever an event is not applied to neutral sta
 | Code | When |
 |------|------|
 | `INVALID_SOCIAL_PAYLOAD` | `mute`, `follow/unfollow`, or `reblog` payload is malformed or misses required fields. |
+| `INVALID_BULK_MUTE_PAYLOAD` | Bulk mute payload is malformed or contains invalid target account set. |
 | `INVALID_ACCOUNT_PAYLOAD` | `create_account` or `update_account` (v1/v2) payload cannot be parsed into normalized account projection. |
 | `POST_AUTHOR_MUTED_BY_GOVERNANCE` | Query-time governance filtering reason: post author is muted by effective owner/moderator set in current governance context. |
 
@@ -62,8 +63,10 @@ Query service MUST return stable machine-readable codes for governance resolutio
 | `GOVERNANCE_NOT_FOUND` | Requested governance object or profile does not exist. |
 | `INVALID_GOVERNANCE_REFERENCE` | Governance input format is invalid or references unsupported target. |
 | `GOVERNANCE_RESOLUTION_FAILED` | Governance graph cannot be resolved (cycle/depth/consistency violation). |
+| `TRUST_CUTOFF_APPLIED` | Account contribution excluded due to governance trust validity cutoff. |
 | `ROLE_REQUIRED` | No decisive role is present in current governance context for validity resolution. |
 | `ROLE_REQUIRED_FOR_RANK` | No decisive role is present in current governance context for rank resolution. |
+| `PLAN_ENTITLEMENT_REQUIRED` | Requested governance capability is not available in current subscription plan. |
 | `GLOBAL_POLICY_VIOLATION` | Request attempts to bypass or conflict with mandatory global policy. |
 | `MASK_EVALUATION_TIMEOUT` | Query mask computation exceeded configured timeout budget. |
 | `RATE_LIMIT_EXCEEDED` | Request exceeded configured rate limit. |

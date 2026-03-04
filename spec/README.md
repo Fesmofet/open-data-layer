@@ -4,10 +4,12 @@ Specification for deterministic indexing plus request-time governance masking.
 
 ## Architecture baseline
 
-V2 is a two-service model:
+V2 is a four-service model:
 
 - `Indexer Service` stores canonical neutral state.
 - `Query/Masking Service` applies governance masks per request.
+- `Dashboard/Admin/Billing Service` manages plans and governance entitlements.
+- `API Gateway/Rate-Limit Service` enforces tokens, quotas, and speed classes.
 
 ## Layout
 
@@ -22,7 +24,9 @@ V2 is a two-service model:
 - **governance_resolution.md** — role precedence, trust graph traversal, cache invalidation.
 - **services_architecture.md** — indexer/query boundary and contract.
 - **social_account_ingestion.md** — social/account ingestion schema and v1/v2 metadata merge rules.
-- **overflow_strategy.md** — Hive baseline publishing and Arweave overflow policy.
+- **overflow_strategy.md** — Hive baseline publishing and IPFS overflow policy (Arweave deferred).
+- **storage_spec.md** — primary write path, overflow backend, and deferred permanence integration points.
+- **monetization_spec.md** — plan tiers, entitlement mapping, gateway/billing enforcement model.
 - **acceptance_tests.md** — acceptance test cases across both services.
 
 ## Namespaces

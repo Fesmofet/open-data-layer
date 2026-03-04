@@ -10,7 +10,7 @@ Governance is a **query-time policy layer** applied over already indexed blockch
 - Governance masks are applied by the query service per request.
 - Different governance inputs may produce different API views over the same indexed state.
 
-## 2) Two-service model
+## 2) Service model
 
 ### Indexer Service
 
@@ -25,6 +25,14 @@ Governance is a **query-time policy layer** applied over already indexed blockch
 - Resolves governance graph (owner/admin/trusted/moderator rules).
 - Applies mask precedence and returns filtered/ranked response.
 - Supports cache + invalidation for governance resolution.
+
+### Dashboard/Admin/Billing Service
+
+- Manages subscriptions, plan entitlements, governance UX, and usage analytics.
+
+### API Gateway/Rate-Limit Service
+
+- Validates access tokens, enforces plan limits, and records usage before forwarding to query service.
 
 ## 3) Governance layers and precedence
 
@@ -57,9 +65,10 @@ Request governance cannot bypass global restrictions.
 ## 7) Overflow and operational policy
 
 - Default publish path is Hive.
-- Arweave is an emergency/offload path for:
+- IPFS is the emergency/offload path for:
   - large initial imports,
   - backlog drain when update queue overflows.
+- Arweave is deferred and kept as future permanence extension.
 - Confirmation lifecycle (`accepted` vs finalized), polling, and TTL are specified in `spec/overflow_strategy.md`.
 
 ## 8) Where to read full normative rules

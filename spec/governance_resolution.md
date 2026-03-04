@@ -13,6 +13,7 @@ Define how Query/Masking Service computes an effective governance mask from gove
   - max trust depth,
   - max visited nodes,
   - timeout budget.
+  - trust cutoff reference (block height/time) where applicable.
 
 ## 3) Role domains
 
@@ -44,6 +45,7 @@ Resolution order:
 - Traversal stops at configured depth and node limit.
 - Cycle detection is mandatory.
 - On cycle/limit violation, return `GOVERNANCE_RESOLUTION_FAILED`.
+- Governance may include references to other governance objects; referenced role lists are merged by deterministic precedence.
 
 ## 6) Effective mask output
 
@@ -75,6 +77,13 @@ Snapshot object:
   - `owner_accounts`
   - `moderator_accounts`
   - `muted_subject_accounts`
+- `trust_validity`:
+  - `cutoff_block` (optional)
+  - `cutoff_time_unix` (optional)
+  - semantics: actions after cutoff are excluded from trusted resolution while historical actions remain valid.
+- `list_overrides`:
+  - `whitelist_accounts` (override/protection set)
+  - `blacklist_accounts` (eligibility deny set)
 
 ## 7) Caching and invalidation
 
@@ -92,6 +101,8 @@ At minimum:
 - governance declaration update,
 - role assignment change,
 - trust edge change,
+- trust cutoff change,
+- whitelist/blacklist change,
 - global policy update,
 - algorithm version change.
 - TTL expiry (`now >= expires_at_unix`).
@@ -110,3 +121,13 @@ At minimum:
   - nodes traversed,
   - depth reached,
   - elapsed time.
+
+## 10) Optional trust signals (non-authoritative)
+
+The following signals may be stored and used as auxiliary ranking/freshness factors, but must not replace authoritative governance rules:
+
+- profile->website linkage with reciprocal `llm.txt` account proof,
+- subscription/payment signal,
+- account heartbeat/activity recency.
+
+These signals are advisory and should be clearly separated from decisive governance role resolution.

@@ -1,9 +1,10 @@
 # Acceptance test cases (V2)
 
-These cases validate both services:
+These cases validate core services:
 
 - Indexer Service (deterministic neutral state)
 - Query/Masking Service (governance mask behavior per request)
+- API Gateway/Rate-Limit Service (token and entitlement enforcement)
 
 Canonical event order is:
 `(block_num, trx_index, op_index, transaction_id)`.
@@ -91,6 +92,11 @@ Canonical event order is:
 - **Setup**: Account A mutes B.
 - **Action**: Index mute event.
 - **Expect**: `social_mutes_current` contains active mute A->B.
+
+### AC-I16a: Bulk mute operation is materialized
+- **Setup**: Governance bulk mute operation contains targets B1..Bn from actor A.
+- **Action**: Index bulk mute event.
+- **Expect**: `social_mutes_current` contains active mute edges A->B1..A->Bn deterministically.
 
 ### AC-I17: Reblog relation is persisted
 - **Setup**: Account A reblogs post P.
@@ -196,6 +202,31 @@ Canonical event order is:
 - **Action**: Resolve rank in query service.
 - **Expect**: Query returns fallback ranking behavior; if strict mode is enabled, returns `ROLE_REQUIRED_FOR_RANK`.
 
+### AC-Q12: Governance references merge deterministically
+- **Setup**: Governance G references governance G1 and G2 with overlapping role sets.
+- **Action**: Resolve governance snapshot repeatedly.
+- **Expect**: Merged role/mute/list output is identical for identical inputs.
+
+### AC-Q13: Trust cutoff preserves historical actions
+- **Setup**: Trusted account T has actions before and after configured cutoff block.
+- **Action**: Resolve query snapshot with trust cutoff active.
+- **Expect**: pre-cutoff actions remain valid; post-cutoff actions are excluded from trusted resolution.
+
+### AC-Q14: Whitelist and blacklist updates are applied by precedence
+- **Setup**: Same account appears in both whitelist and blacklist through inherited governance references.
+- **Action**: Resolve query snapshot.
+- **Expect**: Effective allow/deny result follows deterministic precedence rules and is stable across re-runs.
+
+### AC-Q15: Plan-based governance entitlement enforcement
+- **Setup**: Free-tier token without custom governance entitlement.
+- **Action**: Request query with custom governance override.
+- **Expect**: Gateway/query denies or downgrades request per plan policy.
+
+### AC-Q16: Gateway token validation and usage metering
+- **Setup**: Valid active token mapped to paid plan.
+- **Action**: Send authorized query through gateway.
+- **Expect**: Request is forwarded to query service and usage counters are incremented for billing analytics.
+
 ---
 
 ## C) Overflow behavior (publishing path)
@@ -203,12 +234,12 @@ Canonical event order is:
 ### AC-OF1: Large import triggers overflow path
 - **Setup**: Import size exceeds configured Hive-only threshold.
 - **Action**: Run publisher.
-- **Expect**: Overflow strategy selects Arweave path per policy.
+- **Expect**: Overflow strategy selects IPFS path per policy.
 
 ### AC-OF2: Queue backlog triggers overflow drain
 - **Setup**: Queue depth and age exceed overflow thresholds.
 - **Action**: Run publisher scheduling cycle.
-- **Expect**: Backlog batch is offloaded to Arweave according to policy limits.
+- **Expect**: Backlog batch is offloaded to IPFS according to policy limits.
 
 ### AC-OF3: Accepted vs finalized tracking
 - **Setup**: Transaction accepted but not yet finalized.

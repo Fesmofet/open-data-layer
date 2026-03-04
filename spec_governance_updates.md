@@ -7,7 +7,7 @@ Define a deterministic architecture for:
 - indexing blockchain object/update events,
 - resolving competing updates with vote semantics,
 - applying governance as request-time masks,
-- supporting overflow publishing (Hive baseline + Arweave emergency path).
+- supporting overflow publishing (Hive baseline + IPFS emergency path, Arweave deferred).
 
 ## 2. Service boundary (normative)
 
@@ -25,6 +25,18 @@ Define a deterministic architecture for:
 - Resolves governance graph and role scopes.
 - Applies global + request governance masks to neutral state.
 - Returns filtered and ranked views.
+
+### 2.3 Dashboard/Admin/Billing Service
+
+- Manages user subscriptions, plan tiers, and governance entitlements.
+- Stores usage analytics and billing-oriented counters.
+- Issues/rotates token policy records consumed by gateway.
+
+### 2.4 API Gateway/Rate-Limit Service
+
+- Validates access tokens and enforces plan limits.
+- Applies per-plan speed class, quotas, and rate-limits.
+- Records usage statistics and forwards authorized requests to Query/Masking Service.
 
 ## 3. Namespaces and core entities
 
@@ -94,6 +106,25 @@ Core entities:
   - vote for or against updates targeting that governance object.
 - Any governance update/create/vote action by another account is rejected with `UNAUTHORIZED_GOVERNANCE_OP`.
 
+### 4.3.1 Governance references and merged lists
+
+- Governance object may reference other governance objects.
+- Referenced role/mute/list data is merged deterministically in query-time resolution.
+- Merge precedence is defined by governance resolution algorithm version and must be stable across reindex.
+
+### 4.3.2 Time-bounded trust validity
+
+- Governance supports trust validity cutoff markers (`cutoff_block` preferred; timestamp allowed).
+- Actions after trust cutoff are excluded from trusted resolution.
+- Historical actions before cutoff remain valid unless separately restricted.
+
+### 4.3.3 Whitelist / blacklist governance updates
+
+- Governance object supports two update categories:
+  - `whitelist` updates (override/protection against inherited blocks in allowed scope),
+  - `blacklist` updates (future eligibility deny set).
+- Final precedence between whitelist/blacklist and global policy is resolved in query layer and must be deterministic.
+
 ### 4.4 LWW rule for single fields
 
 - For single-value fields (winner is exactly one value), if the same account publishes a newer update for the same field:
@@ -129,6 +160,7 @@ Core entities:
 Indexer additionally parses and persists Hive operations:
 
 - `mute`
+- bulk mute operation (platform-defined governance operation for batch mute writes)
 - `follow`
 - `unfollow`
 - `reblog`
@@ -192,9 +224,10 @@ Each response is filtered by two governance layers:
 ## 7. Overflow publishing strategy
 
 - Default path: publish via Hive.
-- Emergency path: publish via Arweave for:
+- Emergency path: publish via IPFS for:
   - large initial import,
   - queue backlog drain.
+- Arweave is deferred and retained as future permanence extension point.
 - Operational behavior (thresholds, confirmation polling, TTL, retries) is defined in `spec/overflow_strategy.md`.
 
 ## 8. Logical storage model
@@ -207,6 +240,9 @@ Each response is filtered by two governance layers:
 - `governance_objects_current`
 - `governance_resolution_cache` (query layer)
 - `query_policy_profiles` (optional mapping for subscription governance defaults)
+- `governance_references_current`
+- `governance_list_overrides_current` (whitelist/blacklist)
+- `governance_trust_cutoffs_current`
 - `posts_parsed_current`
 - `post_object_links`
 - `social_follows_current`
@@ -234,13 +270,16 @@ flowchart TD
 - Same neutral state with different governance inputs can produce different masked output.
 - Same neutral state with same governance inputs always produces identical output.
 - Global policy restrictions cannot be bypassed by request governance.
-- Overflow policy switches to Arweave when configured thresholds are exceeded.
+- Overflow policy switches to IPFS when configured thresholds are exceeded.
 - Governance object updates/votes are accepted only from governance object creator.
 - For single fields, repeated updates by same creator resolve via deterministic LWW.
 - Only main governance can create/update `object_type` entities.
 - `update_create` is accepted only when `update_type` is listed in `supported_updates` for target object type.
 - Hive social/account operations (`mute`, `follow/unfollow`, `reblog`, `create_account`, `update_account v1/v2`) are parsed deterministically into dedicated datasets.
 - Post inclusion/exclusion by muted rules is resolved in query layer from governance context/snapshot.
+- Governance references are resolved deterministically with stable merge outputs.
+- Trust cutoff excludes post-cutoff trusted actions while preserving historical pre-cutoff actions.
+- Plan/gateway policy enforcement deterministically limits governance entitlements by subscription tier.
 
 ## 10.1 Non-functional targets
 
@@ -272,4 +311,11 @@ Where:
 - weights (`w_text`, `w_geo`, `w_vote`, `w_rank`) are versioned configuration,
 - freshness function and normalization are versioned configuration,
 - ranking config version must be included in query metadata and cache key.
+
+## 12. Governance and billing coupling
+
+- Platform governance is always base layer.
+- User/tenant governance is applied on top, but entitlement to custom governance features is plan-bound.
+- Gateway enforces governance entitlements from subscription policy before forwarding request to query service.
+- Trusted status may include billing/subscription contribution signals as auxiliary factors, but decisive role rules remain governance-driven.
 

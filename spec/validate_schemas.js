@@ -47,7 +47,7 @@ function checkSchema(name) {
   }
 }
 
-["object_create", "object_type_create", "object_type_update", "create_committee", "update_create", "update_vote", "rank_vote"].forEach(checkSchema);
+["odl_event_envelope", "object_create", "object_type_create", "object_type_update", "create_committee", "update_create", "update_vote", "rank_vote"].forEach(checkSchema);
 
 if (failed) {
   process.exit(1);

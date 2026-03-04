@@ -34,11 +34,12 @@ Validity is derived at query time with tiered hierarchy:
 
 ### Payload contract (logical)
 
-- Namespace: `od.updates.v1`
-- Action: `rank_vote`
-- Required fields:
-  - `v`
+- ODL id: `odl-mainnet` (or `odl-testnet`)
+- Event envelope item:
   - `action = rank_vote`
+  - `v`
+  - `payload` (contains fields below)
+- Required fields:
   - `update_id`
   - `voter`
   - `rank` (`1..10000`)

@@ -14,6 +14,7 @@ V2 is a four-service model:
 ## Layout
 
 - **schemas/** — JSON Schema for blockchain events.
+  - includes `odl_event_envelope.json` for unified ODL `custom_json` envelope.
   - includes draft `object_type_create.json` and `object_type_update.json` for `object_type` registry lifecycle.
   - includes `rank_vote.json` for ranking channel votes.
 - **reject_codes.md** — Canonical processing and API/query error codes.
@@ -29,10 +30,29 @@ V2 is a four-service model:
 - **monetization_spec.md** — plan tiers, entitlement mapping, gateway/billing enforcement model.
 - **acceptance_tests.md** — acceptance test cases across both services.
 
-## Namespaces
+## ODL event ids and envelope
 
-- `od.objects.v1` — object writes (`object_create`)
-- `od.updates.v1` — update writes (`update_create`, `update_vote`, `rank_vote`)
+- Main network `custom_json.id`: `odl-mainnet`
+- Test network `custom_json.id`: `odl-testnet`
+
+ODL event envelope:
+
+```json
+{
+  "events": [
+    {
+      "action": "string",
+      "v": 1,
+      "payload": {}
+    }
+  ]
+}
+```
+
+Action space in `events[].action`:
+
+- object writes: `object_create`
+- update writes: `update_create`, `update_vote`, `rank_vote`
 - Governance declarations are written as objects with `object_type = governance` (no separate governance namespace).
 
 ## Core references

@@ -2,13 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-data/schemas/rank_vote.json",
   "title": "rank_vote",
-  "description": "Payload for od.updates.v1 action rank_vote (ranking channel only)",
+  "description": "Payload schema for ODL envelope action rank_vote (events[].payload, ranking channel only)",
   "type": "object",
   "required": ["v", "action", "update_id", "voter", "rank", "transaction_id"],
   "additionalProperties": true,
   "properties": {
-    "v": { "type": "integer", "const": 1 },
-    "action": { "type": "string", "const": "rank_vote" },
     "update_id": { "type": "string", "minLength": 1, "maxLength": 256 },
     "voter": {
       "type": "string",
@@ -27,7 +25,6 @@
       "maxLength": 64,
       "default": "default",
       "description": "Optional ranking scope, e.g. gallery/search/feed"
-    },
-    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+    }
   }
 }

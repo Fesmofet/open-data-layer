@@ -2,16 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-data/schemas/update_vote.json",
   "title": "update_vote",
-  "description": "Payload for od.updates.v1 action update_vote",
+  "description": "Payload schema for ODL envelope action update_vote (events[].payload)",
   "type": "object",
   "required": ["v", "action", "update_id", "voter", "percent", "transaction_id"],
   "additionalProperties": true,
   "properties": {
-    "v": { "type": "integer", "const": 1 },
-    "action": { "type": "string", "const": "update_vote" },
     "update_id": { "type": "string", "minLength": 1, "maxLength": 256 },
     "voter": { "type": "string", "minLength": 1, "maxLength": 32 },
-    "percent": { "type": "integer", "minimum": -10000, "maximum": 10000 },
-    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+    "percent": { "type": "integer", "minimum": -10000, "maximum": 10000 }
   }
 }

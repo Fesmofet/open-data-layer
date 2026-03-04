@@ -6,7 +6,7 @@ V2 separates write-path processing errors from query/masking errors.
 
 Indexer MUST persist reject code whenever an event is not applied to neutral state.
 
-### Objects namespace (`od.objects.v1`)
+### Object actions (`action = object_create` in ODL envelope)
 
 | Code | When |
 |------|------|
@@ -28,7 +28,7 @@ Indexer MUST persist reject code whenever an event is not applied to neutral sta
 | `UNAUTHORIZED_OBJECT_TYPE_OP` | `object_type` create/update is attempted by account other than main governance creator. |
 | `UNSUPPORTED_UPDATE_TYPE` | `update_create.update_type` is not listed in target object's `object_type.supported_updates`. |
 
-### Updates namespace (`od.updates.v1`)
+### Update actions (`action = update_create/update_vote/rank_vote` in ODL envelope)
 
 | Code | When |
 |------|------|

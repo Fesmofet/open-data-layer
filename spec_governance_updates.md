@@ -38,14 +38,28 @@ Define a deterministic architecture for:
 - Applies per-plan speed class, quotas, and rate-limits.
 - Records usage statistics and forwards authorized requests to Query/Masking Service.
 
-## 3. Namespaces and core entities
+## 3. ODL event id and core entities
 
-Namespaces:
+ODL custom_json ids:
 
-- `od.objects.v1` (`object_create`)
-- `od.updates.v1` (`update_create`, `update_vote`, `rank_vote`)
-- Governance is represented as normal objects with `object_type = governance`.
-- There is no separate governance namespace in V2.
+- mainnet: `odl-mainnet`
+- testnet: `odl-testnet`
+
+All events are sent in one envelope:
+
+- `events[]` items with fields:
+  - `action: string`
+  - `v: number`
+  - `payload: object`
+
+Action set:
+
+- `object_create`
+- `update_create`
+- `update_vote`
+- `rank_vote`
+
+Governance is represented as normal objects with `object_type = governance` (no separate governance namespace).
 
 Core entities:
 

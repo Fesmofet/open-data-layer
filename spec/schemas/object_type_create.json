@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-data/schemas/object_type_create.json",
   "title": "object_type_create",
-  "description": "Draft payload for creating object type registry entities via od.objects.v1/object_create",
+  "description": "Draft payload for creating object type registry entities via ODL envelope action object_create",
   "type": "object",
   "required": [
     "v",
@@ -17,34 +17,11 @@
   ],
   "additionalProperties": true,
   "properties": {
-    "v": {
-      "type": "integer",
-      "const": 1
-    },
-    "action": {
-      "type": "string",
-      "const": "object_create"
-    },
-    "object_id": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 256
-    },
-    "object_type": {
-      "type": "string",
-      "const": "object_type",
-      "description": "Registry entity marker"
-    },
     "creator": {
       "type": "string",
       "minLength": 1,
       "maxLength": 32,
       "pattern": "^[a-z0-9.-]+$"
-    },
-    "transaction_id": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 64
     },
     "name": {
       "type": "string",

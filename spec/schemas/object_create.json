@@ -2,21 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-data/schemas/object_create.json",
   "title": "object_create",
-  "description": "Payload for od.objects.v1 custom_json action object_create",
+  "description": "Payload schema for ODL envelope action object_create (events[].payload)",
   "type": "object",
   "required": ["v", "action", "object_id", "object_type", "creator", "transaction_id"],
   "additionalProperties": true,
   "properties": {
-    "v": {
-      "type": "integer",
-      "const": 1,
-      "description": "Payload version"
-    },
-    "action": {
-      "type": "string",
-      "const": "object_create",
-      "description": "Event action"
-    },
     "object_id": {
       "type": "string",
       "minLength": 1,
@@ -35,12 +25,6 @@
       "maxLength": 32,
       "pattern": "^[a-z0-9.-]+$",
       "description": "Hive account that creates the object"
-    },
-    "transaction_id": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 64,
-      "description": "Hive transaction id for idempotency"
     }
   }
 }

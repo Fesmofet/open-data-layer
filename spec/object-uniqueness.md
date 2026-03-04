@@ -1,5 +1,7 @@
 # Object uniqueness and collision behavior
 
+**Back:** [Spec index](README.md) · **Related:** [object-type-entity](object-type-entity.md), [reject-codes](reject-codes.md), [acceptance-tests](acceptance-tests.md)
+
 ## Scope
 
 This file defines write-path uniqueness rules for the Indexer Service.

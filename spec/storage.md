@@ -1,4 +1,6 @@
-# Storage Specification 
+# Storage Specification
+
+**Back:** [Spec index](README.md) · **Related:** [architecture](architecture.md), [overflow-strategy](overflow-strategy.md)
 
 ## 1) Primary write path
 
@@ -9,7 +11,6 @@
 
 - Overflow path is IPFS for large imports and queue backlog drain.
 - Offloaded payloads must remain addressable from index/query flow.
-- CDN may be layered on top of IPFS for delivery performance.
 
 ## 3) Deferred Arweave integration points
 

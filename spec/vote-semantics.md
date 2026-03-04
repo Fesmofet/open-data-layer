@@ -1,5 +1,7 @@
 # Vote semantics: query-time validity and rank resolution
 
+**Back:** [Spec index](README.md) · **Related:** [governance-resolution](governance-resolution.md), [object-type-entity](object-type-entity.md), [reject-codes](reject-codes.md)
+
 Votes are stored as neutral raw events by the Indexer Service.
 All role-based interpretation is resolved in Query/Masking Service using governance context/snapshot.
 
@@ -23,7 +25,7 @@ All role-based interpretation is resolved in Query/Masking Service using governa
   - `update_id`
   - `voter`
   - `vote` (`for`, `against`, `remove`)
-  - `transaction_id`
+
 
 ### Query-time decisive resolution
 
@@ -31,7 +33,7 @@ Validity is derived at query time with tiered hierarchy:
 
 1. `owner` always wins.
 2. if no owner vote exists, latest `admin` wins (LWAW).
-3. if no owner/admin vote exists, latest `trusted` wins (LWTW).
+3. if no owner/admin vote exists, latest `trusted` wins, but only on objects he has authority update (LWTW).
 4. if no decisive vote exists (including after `remove`), fallback is baseline `VALID`.
 
 `latest` is determined by canonical order:
@@ -59,7 +61,6 @@ Validity is derived at query time with tiered hierarchy:
   - `update_id`
   - `voter`
   - `rank` (`1..10000`)
-  - `transaction_id`
 - Optional:
   - `rank_context` (default `default`)
 
@@ -76,7 +77,7 @@ Ranking uses the same hierarchy:
 
 1. `owner` always wins.
 2. if no owner vote exists, latest `admin` wins (LWAW).
-3. if no owner/admin vote exists, latest `trusted` wins (LWTW).
+3. if no owner/admin vote exists, latest `trusted` wins but only on objects he has authority update (LWTW).
 
 `latest` is determined by canonical order:
 `(block_num, trx_index, op_index, transaction_id)`.

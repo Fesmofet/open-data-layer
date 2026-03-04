@@ -1,6 +1,8 @@
-# Canonical Error Codes 
+# Canonical Error Codes
 
-separates write-path processing errors from query/masking errors.
+**Back:** [Spec index](README.md) · **Related:** [object-uniqueness](object-uniqueness.md), [object-type-entity](object-type-entity.md), [governance-resolution](governance-resolution.md)
+
+Separates write-path processing errors from query/masking errors.
 
 ## 1) Indexer write-path reject codes
 

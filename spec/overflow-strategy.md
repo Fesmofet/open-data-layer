@@ -1,5 +1,7 @@
 # Overflow Strategy (Hive + IPFS, Arweave deferred)
 
+**Back:** [Spec index](README.md) · **Related:** [storage](storage.md), [architecture](architecture.md)
+
 ## 1) Goal
 
 Provide a deterministic policy for when publishing stays on Hive and when it offloads to IPFS.

@@ -1,4 +1,6 @@
-# Monetization and Plan Entitlements 
+# Monetization and Plan Entitlements
+
+**Back:** [Spec index](README.md) · **Related:** [architecture](architecture.md), [governance-resolution](governance-resolution.md), [reject-codes](reject-codes.md)
 
 ## 1) Purpose
 

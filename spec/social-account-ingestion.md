@@ -1,5 +1,7 @@
 # Social and Account Ingestion
 
+**Back:** [Spec index](README.md) · **Related:** [architecture](architecture.md), [reject-codes](reject-codes.md), [acceptance-tests](acceptance-tests.md)
+
 ## 1) Scope
 
 This document defines deterministic ingestion and normalization for Hive social/account operations:

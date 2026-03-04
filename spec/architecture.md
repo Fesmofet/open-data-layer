@@ -1,5 +1,7 @@
 # Services Architecture
 
+**Back:** [Spec index](README.md) · **Related:** [governance-resolution](governance-resolution.md), [storage](storage.md), [acceptance-tests](acceptance-tests.md)
+
 ## 1) Overview
 
 is split into four deployable services:
@@ -49,7 +51,7 @@ For user profile projection, indexer currently stores only:
 
 - Receive API requests with governance context.
 - Resolve effective governance set (global + request scope).
-- Apply mask and precedence rules.
+- Apply mask precedence rules.
 - Return filtered/ranked data to client.
 - Maintain governance resolution cache with deterministic invalidation.
 

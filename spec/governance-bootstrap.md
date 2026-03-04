@@ -1,3 +1,7 @@
+# Governance Bootstrap
+
+**Back:** [Spec index](README.md) · **Related:** [governance-resolution](governance-resolution.md), [architecture](architecture.md)
+
 ## Status of bootstrap model
 
 - Governance declarations are indexed as regular governance objects/events.

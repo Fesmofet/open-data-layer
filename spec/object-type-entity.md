@@ -1,4 +1,6 @@
-# Object Type Entity 
+# Object Type Entity
+
+**Back:** [Spec index](README.md) · **Related:** [object-uniqueness](object-uniqueness.md), [vote-semantics](vote-semantics.md), [reject-codes](reject-codes.md)
 
 ## 1) Purpose
 

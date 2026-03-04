@@ -1,4 +1,6 @@
-# Governance Resolution 
+# Governance Resolution
+
+**Back:** [Spec index](README.md) · **Related:** [architecture](architecture.md), [governance-bootstrap](governance-bootstrap.md), [vote-semantics](vote-semantics.md)
 
 ## 1) Purpose
 

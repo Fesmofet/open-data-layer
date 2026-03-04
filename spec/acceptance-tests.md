@@ -1,5 +1,7 @@
 # Acceptance test cases
 
+**Back:** [Spec index](README.md) · **Related:** [architecture](architecture.md), [governance-resolution](governance-resolution.md), [overflow-strategy](overflow-strategy.md)
+
 These cases validate core services:
 
 - Indexer Service (deterministic neutral state)

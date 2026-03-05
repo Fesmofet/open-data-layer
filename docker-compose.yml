@@ -1,0 +1,98 @@
+services:
+  mongodb:
+    container_name: odl-mongodb
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - odl_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    container_name: odl-postgres
+    image: postgis/postgis:18-3.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: odl_query
+    ports:
+      - "5432:5432"
+    volumes:
+      - odl_postgres_data:/var/lib/postgresql
+      - ./docker/postgres/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  seed:
+    container_name: odl-seed
+    build:
+      context: .
+      dockerfile: docker/seed/Dockerfile
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/odl-query
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odl_query
+      SEED_COUNT: "10000"
+      SEED_SEED: "42"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  query-mongo:
+    container_name: odl-query-mongo
+    build:
+      context: .
+      dockerfile: apps/query-mongo/Dockerfile
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/odl-query
+      QUERY_STRATEGY: composition
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/places?limit=1', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  query-postgres:
+    container_name: odl-query-postgres
+    build:
+      context: .
+      dockerfile: apps/query-postgres/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odl_query
+      QUERY_STRATEGY: composition
+      PORT: "3002"
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/places?limit=1', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  odl_mongo_data:
+  odl_postgres_data:

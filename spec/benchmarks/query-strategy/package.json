@@ -1,0 +1,11 @@
+{
+  "name": "@opden-data-layer/benchmark-query-strategy",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "node run.js",
+    "report": "node report.js"
+  },
+  "dependencies": {}
+  }

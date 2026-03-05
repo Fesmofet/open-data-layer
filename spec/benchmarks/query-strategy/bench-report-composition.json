@@ -1,0 +1,404 @@
+{
+  "iterations": 50,
+  "scenarios": [
+    {
+      "name": "by_object_id",
+      "mongo": {
+        "count": 50,
+        "p50": 4.277899999999988,
+        "p95": 6.605399999999975,
+        "p99": 76.4755,
+        "reqPerSec": 166.22384634001668
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 3.3123999999999683,
+        "p95": 5.4435,
+        "p99": 8.758300000000006,
+        "reqPerSec": 283.969576635438
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 1,
+        "postgresTotal": 1
+      }
+    },
+    {
+      "name": "list_page_1",
+      "mongo": {
+        "count": 50,
+        "p50": 12.291500000000042,
+        "p95": 17.682900000000018,
+        "p99": 19.44920000000002,
+        "reqPerSec": 78.85446541009455
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 4.505099999999857,
+        "p95": 7.623899999999935,
+        "p99": 8.211500000000001,
+        "reqPerSec": 199.74161424780914
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 10000,
+        "postgresTotal": 10000
+      }
+    },
+    {
+      "name": "list_page_mid",
+      "mongo": {
+        "count": 50,
+        "p50": 8.729300000000194,
+        "p95": 12.661399999999958,
+        "p99": 14.462600000000066,
+        "reqPerSec": 108.45770539937153
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 12.17840000000001,
+        "p95": 14.891800000000103,
+        "p99": 19.911399999999958,
+        "reqPerSec": 80.14315490902464
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 10000,
+        "postgresTotal": 10000
+      }
+    },
+    {
+      "name": "bbox_small",
+      "mongo": {
+        "count": 50,
+        "p50": 15.147099999999682,
+        "p95": 21.51650000000018,
+        "p99": 25.55769999999984,
+        "reqPerSec": 61.326411789193216
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 5.814100000000053,
+        "p95": 8.026499999999942,
+        "p99": 10.274000000000342,
+        "reqPerSec": 163.77290855444838
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 0,
+        "postgresTotal": 0
+      }
+    },
+    {
+      "name": "bbox_large",
+      "mongo": {
+        "count": 50,
+        "p50": 16.19170000000031,
+        "p95": 24.65560000000005,
+        "p99": 26.572299999999814,
+        "reqPerSec": 56.72925870516149
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 7.449099999999817,
+        "p95": 10.160399999999754,
+        "p99": 16.77619999999979,
+        "reqPerSec": 126.07456503644713
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 63,
+        "postgresTotal": 63
+      }
+    },
+    {
+      "name": "radius_small",
+      "mongo": {
+        "count": 50,
+        "p50": 3.222099999999955,
+        "p95": 4.550100000000384,
+        "p99": 5.962300000000141,
+        "reqPerSec": 291.5581098637621
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 5.672700000000077,
+        "p95": 7.0009000000000015,
+        "p99": 7.84099999999944,
+        "reqPerSec": 171.91730777496045
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 0,
+        "postgresTotal": 0
+      }
+    },
+    {
+      "name": "radius_large",
+      "mongo": {
+        "count": 50,
+        "p50": 3.7226999999993495,
+        "p95": 4.696999999999207,
+        "p99": 5.434400000000096,
+        "reqPerSec": 261.49998483300084
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 6.407599999999547,
+        "p95": 7.346100000000661,
+        "p99": 8.426900000000387,
+        "reqPerSec": 153.95079301592872
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 13,
+        "postgresTotal": 13
+      }
+    },
+    {
+      "name": "tags_all",
+      "mongo": {
+        "count": 50,
+        "p50": 9.311399999999594,
+        "p95": 14.971000000000458,
+        "p99": 15.91359999999986,
+        "reqPerSec": 98.48161052886545
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 4.208700000000135,
+        "p95": 7.032400000000052,
+        "p99": 7.626299999999901,
+        "reqPerSec": 213.0836788130015
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 932,
+        "postgresTotal": 932
+      }
+    },
+    {
+      "name": "tags_any",
+      "mongo": {
+        "count": 50,
+        "p50": 12.347999999999956,
+        "p95": 15.432399999999689,
+        "p99": 17.202499999999418,
+        "reqPerSec": 78.77526519693
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 4.833999999999833,
+        "p95": 5.249500000000808,
+        "p99": 5.941200000000208,
+        "reqPerSec": 206.33361669816384
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 5090,
+        "postgresTotal": 5090
+      }
+    },
+    {
+      "name": "mixed",
+      "mongo": {
+        "count": 50,
+        "p50": 11.177899999999681,
+        "p95": 18.00380000000041,
+        "p99": 18.53740000000016,
+        "reqPerSec": 79.89330089878327
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 6.333000000000538,
+        "p95": 8.83349999999973,
+        "p99": 10.813300000000709,
+        "reqPerSec": 147.60287034445713
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 0,
+        "postgresTotal": 0
+      }
+    },
+    {
+      "name": "exact_body",
+      "mongo": {
+        "count": 50,
+        "p50": 3.368800000000192,
+        "p95": 5.733999999998559,
+        "p99": 6.827799999999115,
+        "reqPerSec": 269.0526977375871
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 2.9440000000013242,
+        "p95": 4.370600000000195,
+        "p99": 4.656800000000658,
+        "reqPerSec": 317.2383513249684
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 1,
+        "postgresTotal": 1
+      }
+    },
+    {
+      "name": "text_contains",
+      "mongo": {
+        "count": 50,
+        "p50": 12.99749999999949,
+        "p95": 18.564900000001217,
+        "p99": 19.191799999998693,
+        "reqPerSec": 72.71426348449663
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 10.167199999999866,
+        "p95": 14.410799999999654,
+        "p99": 15.077299999999013,
+        "reqPerSec": 92.47520046311556
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 10000,
+        "postgresTotal": 10000
+      }
+    },
+    {
+      "name": "text_fulltext",
+      "mongo": {
+        "count": 50,
+        "p50": 21.49829999999929,
+        "p95": 33.04320000000007,
+        "p99": 39.55479999999989,
+        "reqPerSec": 42.72254000196854
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 80.58539999999994,
+        "p95": 98.98760000000038,
+        "p99": 101.4969000000001,
+        "reqPerSec": 12.142244844141803
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 10000,
+        "postgresTotal": 10000
+      }
+    },
+    {
+      "name": "rejected_hidden",
+      "mongo": {
+        "count": 50,
+        "p50": 31.58929999999964,
+        "p95": 38.76670000000013,
+        "p99": 46.929800000001705,
+        "reqPerSec": 30.48560024866502
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 8.387500000000728,
+        "p95": 11.610000000000582,
+        "p99": 13.257400000002235,
+        "reqPerSec": 113.42824857936921
+      },
+      "correctness": {
+        "pass": true,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": true,
+        "mongoTotal": 9990,
+        "postgresTotal": 9990
+      },
+      "semantics": {
+        "pass": true,
+        "mongo": {
+          "pass": true,
+          "message": "ok"
+        },
+        "postgres": {
+          "pass": true,
+          "message": "ok"
+        }
+      }
+    },
+    {
+      "name": "rejected_visible",
+      "mongo": {
+        "count": 50,
+        "p50": 9.190299999998388,
+        "p95": 11.822799999998097,
+        "p99": 12.97899999999936,
+        "reqPerSec": 102.89626225211614
+      },
+      "postgres": {
+        "count": 50,
+        "p50": 3.811099999998987,
+        "p95": 5.426899999998568,
+        "p99": 6.149900000000343,
+        "reqPerSec": 245.83457889520778
+      },
+      "correctness": {
+        "pass": false,
+        "totalMatch": true,
+        "lengthMatch": true,
+        "idsMatch": false,
+        "mongoTotal": 10000,
+        "postgresTotal": 10000
+      },
+      "semantics": {
+        "pass": true,
+        "mongo": {
+          "pass": true,
+          "rejectedCount": 1,
+          "message": "ok"
+        },
+        "postgres": {
+          "pass": true,
+          "rejectedCount": 2,
+          "message": "ok"
+        }
+      }
+    }
+  ]
+}

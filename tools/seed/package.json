@@ -1,0 +1,13 @@
+{
+  "name": "@opden-data-layer/seed",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node run.js"
+  },
+  "dependencies": {
+    "mongodb": "^7.0.0",
+    "pg": "^8.11.0"
+  }
+}

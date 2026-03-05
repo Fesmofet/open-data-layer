@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/odl_event_envelope.json",
+  "title": "odl_event_envelope",
+  "description": "ODL unified custom_json envelope for odl-mainnet/odl-testnet",
+  "type": "object",
+  "required": ["events"],
+  "additionalProperties": true,
+  "properties": {
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["action", "v", "payload"],
+        "additionalProperties": true,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["object_create", "update_create", "update_vote", "rank_vote"]
+          },
+          "v": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "payload": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/update_vote.json",
+  "title": "update_vote",
+  "description": "Payload schema for ODL envelope action update_vote (events[].payload)",
+  "type": "object",
+  "required": ["id", "update_id", "voter", "vote", "transaction_id"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "update_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "voter": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "vote": {
+      "type": "string",
+      "enum": ["for", "against", "remove"],
+      "description": "Validity vote intent: approve, reject, or remove current vote"
+    },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

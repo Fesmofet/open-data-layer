@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/object_type_create.json",
+  "title": "object_type_create",
+  "description": "Draft payload for creating object type registry entities via ODL envelope action object_create",
+  "type": "object",
+  "required": [
+    "id",
+    "object_id",
+    "object_type",
+    "creator",
+    "transaction_id",
+    "name",
+    "supported_updates",
+    "supposed_updates",
+    "transaction_id"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "creator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-z0-9.-]+$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Logical type name, e.g. product, recipe"
+    },
+    "supported_updates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "description": "Update kinds accepted by indexer for this type"
+    },
+    "supposed_updates": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "description": "Automation-intended updates; metadata only in current spec"
+    },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

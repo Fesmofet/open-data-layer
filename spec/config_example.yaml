@@ -1,0 +1,12 @@
+# Example indexer config (governance bootstrap).
+# bootstrap_allowlist: only these accounts may emit the first valid create_committee.
+
+governance:
+  bootstrap_allowlist:
+    - "founder1"
+    - "founder2"
+    - "founder3"
+
+# Optional: committee_id and threshold can be validated against payload.
+# committee_id: "main"
+# threshold: 2

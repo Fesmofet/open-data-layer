@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/object_create.json",
+  "title": "object_create",
+  "description": "Payload schema for ODL envelope action object_create (events[].payload)",
+  "type": "object",
+  "required": ["id", "object_type", "creator", "transaction_id"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Globally unique id chosen by creator",
+      "pattern": "^[a-z0-9.-]+$"
+    },
+    "object_type": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Type of the object e.g. product"
+    },
+    "creator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-z0-9.-]+$",
+      "description": "Hive account that creates the object"
+    },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

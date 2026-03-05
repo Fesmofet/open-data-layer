@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/object_type_update.json",
+  "title": "object_type_update",
+  "description": "Draft payload for updating object type registry entities via ODL envelope action update_create",
+  "type": "object",
+  "required": [
+    "id",
+    "object_id",
+    "update_type",
+    "creator",
+    "transaction_id",
+    "supported_updates",
+    "supposed_updates",
+    "transaction_id"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "object_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Target object_type entity object_id"
+    },
+    "creator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-z0-9.-]+$"
+    },
+    "supported_updates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    "supposed_updates": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

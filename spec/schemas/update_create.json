@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-data/schemas/update_create.json",
+  "title": "update_create",
+  "description": "Payload schema for ODL envelope action update_create (events[].payload)",
+  "type": "object",
+  "required": [ "id", "update_id", "object_id", "update_type", "creator", "transaction_id"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "object_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "name": { "type": "string" },
+    "body": { "type": "string" },
+    "locale": { "type": "string", "maxLength": 32 },
+    "creator": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

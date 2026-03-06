@@ -1,3 +1,5 @@
+export {};
+
 /**
  * Minimal core-only object model derived from the spec:
  * - generic across object types

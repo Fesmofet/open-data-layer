@@ -1,7 +1,6 @@
 
 
 interface RankDocument {
-  updateId: string;
   rankId: string;
   rank: number;
   rankTimestamp: string;
@@ -12,7 +11,6 @@ interface VoteDocument {
   voteId: string;
   voter: string;
   voteType: 'up' | 'down';
-  map?: { type: 'Point', coordinates: [number, number] }; //if updateType is 'map'
   voteTimestamp: string;
 }
 
@@ -21,6 +19,7 @@ interface UpdateDocument {
   updateId: string;
   updateType: 'name' | 'map' | 'tag' | 'authority';
   value: string; // can be string or stringified JSON
+  map?: { type: 'Point', coordinates: [number, number] }; //if updateType is 'map'
   rejectedBy: string[]; // list of accounts that rejected the update
   votes: VoteDocument[];
   ranks?: RankDocument[]; //ranks for multiple updates

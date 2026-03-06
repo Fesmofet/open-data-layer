@@ -1,9 +1,10 @@
 /**
- * Enhanced core object model derived from the spec:
- * - validity/ranking is resolved at query time
- * - governance is calculated before the main object query and is not embedded here
- * - object core stays generic across object types
- * - index-heavy query surfaces should be projected separately from the core document
+ * Minimal core-only object model derived from the spec:
+ * - generic across object types
+ * - stores object metadata plus active updates only
+ * - keeps raw validity/rank state
+ * - does not store duplicated derived state
+ * - does not store governance-derived final decisions
  */
 
 type GeoPoint = {
@@ -12,12 +13,11 @@ type GeoPoint = {
 };
 
 type UpdateCardinality = 'single' | 'multi';
-type UpdateValueKind = 'text' | 'geo' | 'json';
 type ValidityVoteValue = 'for' | 'against';
 
 /**
- * Canonical chain/index position.
- * All "latest wins" decisions must use this ordering, not wall-clock timestamps.
+ * Canonical event position.
+ * All "latest wins" semantics must use this ordering.
  */
 interface CanonicalPosition {
   blockNum: number;
@@ -27,8 +27,8 @@ interface CanonicalPosition {
 }
 
 /**
- * Active raw validity vote state.
- * A remove operation means the active vote disappears from this projection.
+ * Active raw validity vote projection.
+ * A remove operation is represented by deleting the active vote entry.
  */
 interface ActiveValidityVote {
   voter: string;
@@ -37,35 +37,13 @@ interface ActiveValidityVote {
 }
 
 /**
- * Active raw rank vote state.
- * Only meaningful for multi-cardinality updates.
+ * Active raw rank vote projection for multi-cardinality updates only.
  */
 interface ActiveRankVote {
   voter: string;
   rank: number; // 1..10000
   rankContext: string; // usually "default"
   position: CanonicalPosition;
-}
-
-interface UpdateCommon {
-  updateId: string;
-  objectId: string;
-  objectType: string;
-  fieldKey: string;
-  creator: string;
-  createdAtUnix: number;
-  createdPosition: CanonicalPosition;
-
-  /**
-   * Transitional simplification for the current phase.
-   * This is raw evidence only, not a final governance-derived role decision.
-   */
-  rejectedBy?: string | null;
-
-  /**
-   * Query-time validity must be derived from these raw votes plus governance.
-   */
-  validityVotes: ActiveValidityVote[];
 }
 
 interface TextUpdateValue {
@@ -85,46 +63,43 @@ interface JsonUpdateValue {
 
 type UpdateValue = TextUpdateValue | GeoUpdateValue | JsonUpdateValue;
 
-interface SingleValueUpdateDocument extends UpdateCommon {
-  cardinality: 'single';
+interface UpdateDocumentBase {
+  updateId: string;
+  objectId: string;
+  objectType: string;
+  fieldKey: string;
+  creator: string;
+  cardinality: UpdateCardinality;
+  createdAtUnix: number;
+  createdPosition: CanonicalPosition;
   value: UpdateValue;
+
+  /**
+   * Transitional simplification for the current phase.
+   * This is raw evidence only, not an authoritative governance-derived decision.
+   */
+  rejectedBy?: string | null;
+
+  /**
+   * Query-time validity must be derived from these raw votes plus governance.
+   */
+  validityVotes: ActiveValidityVote[];
 }
 
-interface MultiValueUpdateDocument extends UpdateCommon {
+interface SingleValueUpdateDocument extends UpdateDocumentBase {
+  cardinality: 'single';
+}
+
+interface MultiValueUpdateDocument extends UpdateDocumentBase {
   cardinality: 'multi';
-  value: UpdateValue;
   rankVotes: ActiveRankVote[];
 }
 
 type ObjectUpdateDocument = SingleValueUpdateDocument | MultiValueUpdateDocument;
 
 /**
- * Creator-scoped current pointers for single-cardinality fields.
- * Key: fieldKey -> creator -> updateId
- *
- * Example:
- * singleFieldState["name"]["alice"] = "upd-101"
- */
-type SingleFieldState = Record<string, Record<string, string>>;
-
-/**
- * Ordered update pointers for multi-cardinality fields.
- * Key: fieldKey -> [updateId, ...]
- *
- * Order here is storage/application order only.
- * Query-time ranking still comes from rankVotes + governance.
- */
-type MultiFieldState = Record<string, string[]>;
-
-/**
- * Generic object core.
- *
- * Important:
- * - This is not place-specific.
- * - Governance is not embedded here because governance resolution is a separate
- *   object-type/domain concern computed before the main query.
- * - We keep updates in one store and use field-state pointers so the object can
- *   support different update types without exploding the top-level schema.
+ * Core object document.
+ * This is the minimal stored truth for one object and its active updates.
  */
 interface ObjectCoreDocument {
   objectId: string;
@@ -132,71 +107,5 @@ interface ObjectCoreDocument {
   creator: string;
   weight?: number;
   metaGroupId?: string;
-
-  /**
-   * Full active update store by updateId.
-   * Good for object reconstruction and deterministic query-time resolution.
-   */
-  updatesById: Record<string, ObjectUpdateDocument>;
-
-  /**
-   * Current creator-scoped state for single-value fields.
-   * This models LWW(single) without hardcoding fields like name/map into the root document.
-   */
-  singleFieldState: SingleFieldState;
-
-  /**
-   * Active entries for multi-value fields.
-   * For example, "tags" can point to many updateIds.
-   */
-  multiFieldState: MultiFieldState;
-}
-
-/**
- * Optional query projection document.
- *
- * This is where query-oriented indexes should live.
- * Keep it smaller and purpose-built instead of indexing deeply inside ObjectCoreDocument.
- */
-interface ObjectQueryProjectionDocument {
-  objectId: string;
-  objectType: string;
-
-  /**
-   * Flattened queryable values.
-   * Example for place:
-   * - { fieldKey: "name", valueKind: "text", valueText: "Central Park" }
-   * - { fieldKey: "map", valueKind: "geo", valueGeo: {...} }
-   * - { fieldKey: "tags", valueKind: "text", valueText: "nature" }
-   */
-  queryFields: Array<{
-    fieldKey: string;
-    cardinality: UpdateCardinality;
-    valueKind: UpdateValueKind;
-    sourceUpdateId: string;
-    creator: string;
-    valueText?: string;
-    valueGeo?: GeoPoint;
-    valueJson?: unknown;
-  }>;
-}
-
-/**
- * Example query-time resolved view for a place object.
- * This is derived from ObjectCoreDocument + resolved governance snapshot.
- */
-interface ResolvedPlaceView {
-  objectId: string;
-  objectType: 'place';
-  creator: string;
-  name?: string;
-  map?: GeoPoint;
-  tags: Array<{
-    updateId: string;
-    value: string;
-    finalStatus: 'VALID' | 'REJECTED';
-    decisiveRole?: 'owner' | 'admin' | 'trusted';
-    rejectedBy?: string;
-    rankScore?: number;
-  }>;
+  updates: ObjectUpdateDocument[];
 }

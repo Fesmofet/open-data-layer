@@ -6,13 +6,13 @@
  * Not authoritative for governance-derived validity or ranking.
  */
 
-import type { GeoPoint } from './shared-types';
+import type { GeoPoint, UpdateCardinality } from './shared-types';
 
 export interface TextFieldProjection {
   sourceUpdateId: string;
   updateType: string;
   creator: string;
-  cardinality: 'single' | 'multi';
+  cardinality: UpdateCardinality;
   valueText: string;
   /** Normalized value for exact equality queries (e.g. lowercased). */
   exactValueKey?: string;
@@ -22,7 +22,7 @@ export interface GeoFieldProjection {
   sourceUpdateId: string;
   updateType: string;
   creator: string;
-  cardinality: 'single' | 'multi';
+  cardinality: UpdateCardinality;
   valueGeo: GeoPoint;
 }
 
@@ -30,7 +30,7 @@ export interface JsonFieldProjection {
   sourceUpdateId: string;
   updateType: string;
   creator: string;
-  cardinality: 'single' | 'multi';
+  cardinality: UpdateCardinality;
   valueJson: unknown;
   /** Optional canonical key for exact match (e.g. stringified normalized JSON). */
   exactValueKey?: string;
@@ -39,6 +39,7 @@ export interface JsonFieldProjection {
 export interface ObjectQueryProjectionDocument {
   objectId: string;
   objectType: string;
+  creator: string;
   weight?: number;
   metaGroupId?: string;
 

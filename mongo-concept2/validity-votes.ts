@@ -5,12 +5,12 @@
  * A remove operation is represented by deleting this document.
  */
 
-import type { CanonicalPosition } from './shared-types';
+import type { CanonicalPosition, ValidityVoteValue } from './shared-types';
 
 export interface ValidityVoteDocument {
   updateId: string;
   objectId: string;
   voter: string;
-  vote: 'for' | 'against';
+  vote: ValidityVoteValue;
   position: CanonicalPosition;
 }

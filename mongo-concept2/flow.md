@@ -28,7 +28,7 @@ The **resolved view** (final API response) is still computed at request time fro
 ```mermaid
 erDiagram
   ObjectCore ||--o{ ObjectUpdate : "has"
-  ObjectCore ||--o{ ObjectQueryProjection : "one-to-one"
+  ObjectCore ||--o| ObjectQueryProjection : "has"
   ObjectUpdate ||--o{ ValidityVote : "has"
   ObjectUpdate ||--o{ RankVote : "has"
 
@@ -63,6 +63,8 @@ erDiagram
 
   ObjectQueryProjection {
     string objectId PK
+    string objectType
+    string creator
     array textFields
     array geoFields
     array jsonFields
@@ -90,7 +92,14 @@ For the target object, run an atomic update that increments `objects_core.seq`. 
 
 ### Step 2: Upsert update or vote
 
-- **update_create**: Insert one document into `object_updates`. If the update replaces an existing one for the same logical field, remove the old update document (and its votes) first.
+- **update_create**: Insert one document into `object_updates`. For single-cardinality fields, a new update replaces the previous one. The replacement cascade is:
+  1. Find the existing update: `object_updates.findOne({ objectId, updateType, cardinality: 'single' })`.
+  2. Delete its validity votes: `validity_votes.deleteMany({ updateId: oldUpdateId })`.
+  3. Delete its rank votes (defensive): `rank_votes.deleteMany({ updateId: oldUpdateId })`.
+  4. Delete the old update document: `object_updates.deleteOne({ updateId: oldUpdateId })`.
+  5. `$pull` the old entry from the projection array by `sourceUpdateId`.
+  6. Insert the new update document and `$push` the new entry into the projection.
+- **update_create (multi)**: Insert one document into `object_updates`. No replacement; multi-cardinality fields accumulate updates.
 - **update_vote**: Upsert one document into `validity_votes` (key: `updateId` + `voter`). A remove is a delete of that document.
 - **rank_vote**: Upsert one document into `rank_votes` (key: `updateId` + `voter` + `rankContext`).
 
@@ -98,7 +107,7 @@ All of these reference `objectId` so you can query by object when rebuilding or 
 
 ### Step 3: Update projection
 
-- **Incremental**: When a single update is added, `$push` one entry into the appropriate array (`textFields`, `geoFields`, or `jsonFields`) and set `coreSeqAtBuild` and `lastRebuiltAt`. When an update is removed, `$pull` the matching entry. When a vote changes, the projection does not store governance state, so no change is required unless the update’s value changed.
+- **Incremental**: When a single update is added, `$push` one entry into the appropriate array (`textFields`, `geoFields`, or `jsonFields`) and set `coreSeqAtBuild` and `lastRebuiltAt`. When an update is removed, `$pull` the matching entry. When a vote changes, the projection does not store governance state, so no change is required unless the update's value changed.
 - **Full rebuild**: When in doubt (e.g. repair, schema change, or after detecting drift), recompute the entire projection from `object_updates` for that `objectId` and replace the projection document. Set `coreSeqAtBuild` to the current `objects_core.seq` and `lastRebuiltAt` to now.
 
 ## Read flow to ResolvedView
@@ -177,8 +186,15 @@ For each object, using the loaded updates and votes and the governance snapshot:
 | **object_query_projection** | `{ "geoFields.valueGeo": "2dsphere" }` | Geo queries. |
 | **object_query_projection** | `{ "textFields.valueText": "text" }` (if supported) | Text search. |
 | **object_query_projection** | `{ "textFields.updateType": 1, "textFields.exactValueKey": 1 }` | Exact match and type filter. |
+| **object_query_projection** | `{ objectType: 1, "textFields.exactValueKey": 1 }` | Type-scoped exact match. |
+| **object_query_projection** | `{ objectType: 1, weight: -1 }` | Type-scoped sorted listing. |
+| **object_query_projection** | `{ creator: 1 }` | Filter by object creator. |
 
-Splitting text and geo into separate arrays avoids MongoDB’s limitation of one text index per collection and keeps 2dsphere and text indexes on distinct paths.
+Splitting text and geo into separate arrays avoids MongoDB's limitation of one text index per collection and keeps 2dsphere and text indexes on distinct paths.
+
+## Projection array trade-off
+
+The projection document still uses embedded arrays (`textFields`, `geoFields`, `jsonFields`). Unlike v1 where votes were nested inside updates (unbounded growth per update), the projection arrays are bounded by the number of active updates per object -- not by the number of votes. In practice, most objects have tens to low hundreds of updates, well within MongoDB's comfortable document size. This is a conscious trade-off: the alternative (a separate projection document per update) would require multi-document joins on every search query, negating the projection's purpose as a fast query surface. If a future use case produces objects with thousands of updates, consider splitting the projection into a separate collection with one row per field.
 
 ## Consistency model
 

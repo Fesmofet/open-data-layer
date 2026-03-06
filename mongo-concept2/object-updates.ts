@@ -5,14 +5,18 @@
  * Validity and rank votes are stored in validity_votes and rank_votes collections.
  */
 
-import type { CanonicalPosition, UpdateValue } from './shared-types';
+import type {
+  CanonicalPosition,
+  UpdateCardinality,
+  UpdateValue,
+} from './shared-types';
 
 export interface ObjectUpdateDocument {
   updateId: string;
   objectId: string;
   updateType: string;
   creator: string;
-  cardinality: 'single' | 'multi';
+  cardinality: UpdateCardinality;
   createdAtUnix: number;
   createdPosition: CanonicalPosition;
   value: UpdateValue;

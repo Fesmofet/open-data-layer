@@ -24,7 +24,7 @@
 ### Main governance reference
 
 - Deployment must define a deterministic main governance reference (for example, `main_governance_object_id`).
-- Main governance creator is the only account allowed to create or update `object_type` entities.
+- `object_type` entities are open: any user may create types or submit updates. Governance admins act as implicit curators at query time (see [object-type-entity.md](object-type-entity.md)).
 - All indexer instances in the same environment must use identical main governance reference.
 
 ## Governance declaration lifecycle

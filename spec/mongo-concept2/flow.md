@@ -1,6 +1,6 @@
 # Mongo Concept v2: Collections and Flow
 
-This document describes the v2 schema (five collections), write flow, read flow, projection strategy, indexes, and consistency model.
+This document describes the v2 schema (six collections), write flow, read flow, projection strategy, indexes, and consistency model.
 
 Related TypeScript interfaces:
 
@@ -20,6 +20,7 @@ Related TypeScript interfaces:
 | **validity_votes** | One document per active validity vote. References `updateId` and `objectId`. |
 | **rank_votes** | One document per active rank vote (multi-value updates). References `updateId` and `objectId`. |
 | **object_query_projection** | Derived query helper. Split by value kind (textFields, geoFields, jsonFields). Tracks `coreSeqAtBuild` for drift detection. |
+| **object_authority** | One document per `(objectId, username)` authority claim. Written by `add_object_authority` / `remove_object_authority` Hive events. Does not affect `objects_core.seq`. See [authority-entity.md](../authority-entity.md). |
 
 The **resolved view** (final API response) is still computed at request time from core + updates + votes + governance; it is not stored.
 
@@ -71,19 +72,29 @@ erDiagram
     number coreSeqAtBuild
     date lastRebuiltAt
   }
+
+  ObjectAuthority {
+    string objectId FK
+    string username
+    string authorityType
+  }
+
+  ObjectCore ||--o{ ObjectAuthority : "has"
 ```
 
 ## Write flow
 
-Writes happen on the index server when events arrive. Each mutation updates the core `seq`, then writes to the appropriate collection(s), then updates the projection (incrementally when possible).
+Writes happen on the index server when events arrive. Content mutations (update_create, update_vote, rank_vote) increment `objects_core.seq` and update the projection. Authority events write directly to `object_authority` without touching seq or the projection.
 
 ```mermaid
 flowchart LR
   event[IndexerEvent] --> route[RouteByEventType]
-  route --> coreSeq[IncrementCoreSeq]
+  route -->|update_create / update_vote / rank_vote| coreSeq[IncrementCoreSeq]
   coreSeq --> upsert[UpsertUpdateOrVote]
   upsert --> proj[UpdateProjection]
   proj --> done[(Mongo)]
+  route -->|add_object_authority / remove_object_authority| authWrite[UpsertOrDeleteAuthority]
+  authWrite --> done
 ```
 
 ### Step 1: Increment core seq
@@ -104,6 +115,13 @@ For the target object, run an atomic update that increments `objects_core.seq`. 
 - **rank_vote**: Upsert one document into `rank_votes` (key: `updateId` + `voter` + `rankContext`).
 
 All of these reference `objectId` so you can query by object when rebuilding or invalidating the projection.
+
+### Authority events (separate path)
+
+- **add_object_authority**: Insert one document into `object_authority` (key: `objectId` + `username` + `authorityType`). No-op if already exists.
+- **remove_object_authority**: Delete the document from `object_authority` matching `objectId` + `username` + `authorityType` of the signing account.
+
+Authority events bypass seq increment and projection update entirely.
 
 ### Step 3: Update projection
 
@@ -127,7 +145,7 @@ flowchart LR
 
 ### Step 1: Resolve governance
 
-Resolve the governance snapshot (owner, admins, trusted) and precedence rules. This is request-scoped and not stored in any collection.
+Resolve the governance snapshot (admins, trusted) and precedence rules. This is request-scoped and not stored in any collection.
 
 ### Step 2: Query the projection collection
 
@@ -139,7 +157,7 @@ Use `object_query_projection` to narrow candidates:
 
 Output: set of candidate `objectId`s (and optionally matched `sourceUpdateId`s).
 
-### Step 3: Load core, updates, and votes
+### Step 3: Load core, updates, votes, and authority
 
 For each candidate `objectId`:
 
@@ -147,19 +165,23 @@ For each candidate `objectId`:
 - Read all documents from `object_updates` where `objectId` matches.
 - Read all documents from `validity_votes` where `objectId` matches (or where `updateId` is in the set of update IDs).
 - Read all documents from `rank_votes` where `objectId` matches (or where `updateId` is in the set of update IDs).
+- Read all documents from `object_authority` where `objectId` matches.
 
 This can be done with separate queries or with aggregation (`$lookup` from a small set of objectIds) depending on driver and performance needs.
 
 ### Step 4: Assemble ResolvedView
 
-For each object, using the loaded updates and votes and the governance snapshot:
+For each object, using the loaded updates, votes, authority records, and the governance snapshot:
 
-1. Group updates by `updateType`.
-2. Resolve validity per update (votes + governance + precedence).
-3. Resolve single-cardinality updates (e.g. pick one valid value).
-4. Resolve multi-cardinality updates and apply ranking.
-5. Apply visibility options (e.g. omit rejected if `includeRejected=false`).
-6. Shape the API response (ResolvedView).
+1. **Compute curator set** `C = { ownership holders for (targetId, targetKind) from object_authority } ∩ { governance admins ∪ governance trusted }`.
+2. Group updates by `updateType`.
+3. Resolve validity per update:
+   - If `C` is non-empty, apply curator filter: an update is valid only if its `creator ∈ C` OR it has a positive validity vote from any member of `C`. Updates satisfying neither are treated as invalid regardless of other votes.
+   - If `C` is empty, apply normal vote semantics (votes + governance + precedence).
+4. Resolve single-cardinality updates (pick one valid value).
+5. Resolve multi-cardinality updates and apply ranking.
+6. Apply visibility options (e.g. omit rejected if `includeRejected=false`).
+7. Shape the API response (ResolvedView).
 
 ## Incremental vs full projection rebuild
 
@@ -189,6 +211,9 @@ For each object, using the loaded updates and votes and the governance snapshot:
 | **object_query_projection** | `{ objectType: 1, "textFields.exactValueKey": 1 }` | Type-scoped exact match. |
 | **object_query_projection** | `{ objectType: 1, weight: -1 }` | Type-scoped sorted listing. |
 | **object_query_projection** | `{ creator: 1 }` | Filter by object creator. |
+| **object_authority** | \{ objectId: 1, username: 1 }\ (unique) | Primary key; upsert/delete by event. |
+| **object_authority** | \{ objectId: 1, authorityType: 1 }\ | Load all ownership holders for an object (curator set computation). |
+| **object_authority** | \{ username: 1 }\ | Find all objects a user holds authority over. |
 
 Splitting text and geo into separate arrays avoids MongoDB's limitation of one text index per collection and keeps 2dsphere and text indexes on distinct paths.
 
@@ -200,4 +225,4 @@ The projection document still uses embedded arrays (`textFields`, `geoFields`, `
 
 - **Core and projection**: Projection is derived from `object_updates` (and thus from the same mutations that update `objects_core.seq`). Use the same write path so that after a successful write, either both core seq and projection are updated, or you have a clear way to repair.
 - **Drift detection**: Compare `objects_core.seq` with `object_query_projection.coreSeqAtBuild`. If `seq` > `coreSeqAtBuild`, the projection is stale. A periodic job or an on-read check can trigger a full rebuild for that object.
-- **Transactions**: If all five collections are in the same replica set, multi-document transactions can keep core + updates + votes + projection consistent in one logical write. Otherwise, design for eventual consistency and reconciliation via `seq` / `coreSeqAtBuild`.
+- **Transactions**: If all six collections are in the same replica set, multi-document transactions can keep core + updates + votes + projection consistent in one logical write. Otherwise, design for eventual consistency and reconciliation via `seq` / `coreSeqAtBuild`.

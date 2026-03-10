@@ -55,7 +55,8 @@ Details: [architecture.md](architecture.md).
 | Doc | Description |
 |-----|-------------|
 | [object-uniqueness.md](object-uniqueness.md) | `object_id` global uniqueness, first-write-wins, collision rules |
-| [object-type-entity.md](object-type-entity.md) | Governance-controlled `object_type` registry (`supported_updates`, `supposed_updates`) |
+| [object-type-entity.md](object-type-entity.md) | Open `object_type` registry in its own collections; any user may create types; governance admins act as implicit curators (`supported_updates`, `supposed_updates`) |
+| [authority-entity.md](authority-entity.md) | Open `object_authority` registry; per-object ownership/administrative claims; curator filter in ResolvedView |
 | [vote-semantics.md](vote-semantics.md) | Query-time validity and rank resolution; raw vote storage |
 | [reject-codes.md](reject-codes.md) | Canonical indexer and query/masking error codes |
 

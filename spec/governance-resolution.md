@@ -21,7 +21,6 @@ Define how Query/Masking Service computes an effective governance mask from gove
 
 Data domain:
 
-- `owner`
 - `admin`
 - `trusted`
 
@@ -56,36 +55,6 @@ The resolved mask output must include:
 - allowed/denied account sets by domain,
 - role map for voting and moderation interpretation,
 - metadata (source governance refs, resolved depth, version/hash).
-
-### resolved_governance_snapshot (normative format)
-
-Snapshot object:
-
-- `snapshot_hash`: deterministic hash of full resolved snapshot content.
-- `governance_ref`: request governance reference used for resolution.
-- `global_policy_version`: applied global policy version.
-- `resolution_algo_version`: governance resolution algorithm version.
-- `resolved_at_block`: block height (or index checkpoint) used for consistency.
-- `ttl_seconds`: snapshot TTL.
-- `expires_at_unix`: absolute expiry timestamp.
-- `allow_sets`:
-  - `data_domain_accounts`
-  - `social_domain_accounts`
-- `deny_sets`:
-  - `global_denies`
-  - `request_denies`
-- `role_map`: effective account-to-role mapping by domain.
-- `moderation_sets`:
-  - `owner_accounts`
-  - `moderator_accounts`
-  - `muted_subject_accounts`
-- `trust_validity`:
-  - `cutoff_block` (optional)
-  - `cutoff_time_unix` (optional)
-  - semantics: actions after cutoff are excluded from trusted resolution while historical actions remain valid.
-- `list_overrides`:
-  - `whitelist_accounts` (override/protection set)
-  - `blacklist_accounts` (eligibility deny set)
 
 ## 7) Caching and invalidation
 

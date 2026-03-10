@@ -115,18 +115,13 @@ Canonical event order is:
 - **Action**: Index both in canonical order.
 - **Expect**: single normalized `accounts_current` record reflects latest deterministic values for `name`, `alias`, `json_metadata`, `profile_image`.
 
-### AC-I20: rank_vote owner always wins
-- **Setup**: Update U has rank values from trusted/admin, then owner sets another rank value.
-- **Action**: Compute ranking signal for U.
-- **Expect**: decisive ranking signal equals latest owner `rank` value.
-
-### AC-I21: rank_vote admin LWAW when owner absent
-- **Setup**: No owner rank vote for update U; two admins set different rank values in sequence.
+### AC-I20: rank_vote admin LWAW
+- **Setup**: Update U has rank values from multiple admins set in sequence.
 - **Action**: Compute ranking signal for U.
 - **Expect**: decisive ranking signal equals latest admin `rank` value by canonical order.
 
-### AC-I22: rank_vote trusted LWTW when owner/admin absent
-- **Setup**: No owner/admin rank vote for update U; trusted users set different rank values in sequence.
+### AC-I21: rank_vote trusted LWTW when admin absent
+- **Setup**: No admin rank vote for update U; trusted users set different rank values in sequence.
 - **Action**: Compute ranking signal for U.
 - **Expect**: decisive ranking signal equals latest trusted `rank` value by canonical order.
 
@@ -195,12 +190,12 @@ Canonical event order is:
 - **Expect**: Previous snapshot invalidated, new snapshot hash `H2 != H1`, response reflects new governance rules.
 
 ### AC-Q10: Missing decisive role in context for validity resolution
-- **Setup**: Query context has no owner/admin/trusted vote applicable for update U.
+- **Setup**: Query context has no admin/trusted vote applicable for update U.
 - **Action**: Resolve validity in query service.
 - **Expect**: Query returns fallback validity behavior; if strict mode is enabled, returns `ROLE_REQUIRED`.
 
 ### AC-Q11: Missing decisive role in context for rank resolution
-- **Setup**: Query context has no owner/admin/trusted rank vote applicable for update U.
+- **Setup**: Query context has no admin/trusted rank vote applicable for update U.
 - **Action**: Resolve rank in query service.
 - **Expect**: Query returns fallback ranking behavior; if strict mode is enabled, returns `ROLE_REQUIRED_FOR_RANK`.
 

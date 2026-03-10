@@ -31,10 +31,9 @@ All role-based interpretation is resolved in Query/Masking Service using governa
 
 Validity is derived at query time with tiered hierarchy:
 
-1. `owner` always wins.
-2. if no owner vote exists, latest `admin` wins (LWAW).
-3. if no owner/admin vote exists, latest `trusted` wins, but only on objects he has authority update (LWTW).
-4. if no decisive vote exists (including after `remove`), fallback is baseline `VALID`.
+1. Latest `admin` wins (LWAW).
+2. If no admin vote exists, latest `trusted` wins, but only on objects he has authority update (LWTW).
+3. If no decisive vote exists (including after `remove`), fallback is baseline `VALID`.
 
 `latest` is determined by canonical order:
 `(block_num, trx_index, op_index, transaction_id)`.
@@ -75,9 +74,8 @@ Validity is derived at query time with tiered hierarchy:
 
 Ranking uses the same hierarchy:
 
-1. `owner` always wins.
-2. if no owner vote exists, latest `admin` wins (LWAW).
-3. if no owner/admin vote exists, latest `trusted` wins but only on objects he has authority update (LWTW).
+1. Latest `admin` wins (LWAW).
+2. If no admin vote exists, latest `trusted` wins but only on objects he has authority update (LWTW).
 
 `latest` is determined by canonical order:
 `(block_num, trx_index, op_index, transaction_id)`.

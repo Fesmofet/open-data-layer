@@ -14,12 +14,13 @@ Related files:
 ## Roles of the tables
 
 
-| Table              | Role                                                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **objects_core**   | Slim identity and metadata per object. `seq` incremented on every mutation.                                                                            |
-| **object_updates** | One row per active update. FK to objects_core ON DELETE CASCADE. Holds value (text/geo/json), plus `search_vector` (tsvector) and PostGIS `value_geo`. |
-| **validity_votes** | One row per validity vote. FK to object_updates ON DELETE CASCADE — replacing an update deletes its votes automatically.                               |
-| **rank_votes**     | One row per rank vote. Same CASCADE. rank 1..10000 enforced by CHECK.                                                                                  |
+| Table                | Role                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **objects_core**     | Slim identity and metadata per object. `seq` incremented on every mutation.                                                                            |
+| **object_updates**   | One row per active update. FK to objects_core ON DELETE CASCADE. Holds value (text/geo/json), plus `search_vector` (tsvector) and PostGIS `value_geo`. |
+| **validity_votes**   | One row per validity vote. FK to object_updates ON DELETE CASCADE — replacing an update deletes its votes automatically.                               |
+| **rank_votes**       | One row per rank vote. Same CASCADE. rank 1..10000 enforced by CHECK.                                                                                  |
+| **object_authority** | One row per `(object_id, username)` authority claim. Written by `add_object_authority` / `remove_object_authority` Hive events. Does not affect `seq`. See [authority-entity.md](../authority-entity.md). |
 
 
 The **resolved view** (final API response) is computed at request time from core + updates + votes + governance; it is not stored.
@@ -62,21 +63,32 @@ erDiagram
     int rank
     text rank_context
   }
+
+  ObjectAuthority {
+    text object_id FK
+    text username
+    text authority_type
+  }
+
+  ObjectCore ||--o{ ObjectAuthority : "has"
 ```
 
 
 
 ## Write flow
 
-Writes run inside a single transaction. No projection step.
+Content mutations (update_create, update_vote, rank_vote) run inside a single transaction. Authority events are a separate write path — no transaction needed, no `seq` increment.
 
 ```mermaid
 flowchart LR
-  event[IndexerEvent] --> txn["BEGIN"]
+  event[IndexerEvent] --> route[RouteByEventType]
+  route -->|update_create / update_vote / rank_vote| txn["BEGIN"]
   txn --> coreSeq[IncrementCoreSeq]
   coreSeq --> upsert[UpsertUpdateOrVote]
   upsert --> commit["COMMIT"]
   commit --> done[(PostgreSQL)]
+  route -->|add_object_authority / remove_object_authority| authWrite[UpsertOrDeleteAuthority]
+  authWrite --> done
 ```
 
 
@@ -107,6 +119,13 @@ Replace the existing update for that object + update_type + cardinality:
 
 All in the same transaction as the seq increment.
 
+### Authority events (separate path)
+
+- **add_object_authority**: `INSERT INTO object_authority (object_id, username, authority_type) VALUES ($1, $2, $3) ON CONFLICT (object_id, username, authority_type) DO NOTHING`
+- **remove_object_authority**: `DELETE FROM object_authority WHERE object_id = $1 AND username = $2 AND authority_type = $3`
+
+Executed outside any transaction together with content events.
+
 ### Step 3: No projection
 
 The authoritative tables are the query surface. No separate projection table to maintain.
@@ -128,7 +147,7 @@ flowchart LR
 
 ### Step 1: Resolve governance
 
-Same as Mongo: resolve owner, admins, trusted, precedence. Request-scoped, not stored.
+Same as Mongo: resolve admins, trusted, precedence. Request-scoped, not stored.
 
 ### Step 2: Query with filters
 
@@ -169,9 +188,9 @@ ORDER BY oc.weight DESC NULLS LAST
 LIMIT $2 OFFSET $3;
 ```
 
-### Step 3: Load core, updates, and votes (four targeted queries)
+### Step 3: Load core, updates, votes, and authority (five targeted queries)
 
-A single 4-way JOIN (`objects_core LEFT JOIN object_updates LEFT JOIN validity_votes LEFT JOIN rank_votes`) produces a Cartesian product: if one update has 5 validity votes and 3 rank votes it generates 15 rows per update, requiring complex deduplication in the application. Use four separate queries instead:
+A single 4-way JOIN (`objects_core LEFT JOIN object_updates LEFT JOIN validity_votes LEFT JOIN rank_votes`) produces a Cartesian product: if one update has 5 validity votes and 3 rank votes it generates 15 rows per update, requiring complex deduplication in the application. Use five separate queries instead:
 
 ```sql
 -- 1. Core rows
@@ -185,13 +204,26 @@ SELECT * FROM validity_votes WHERE object_id = ANY($objectIds);
 
 -- 4. Rank votes
 SELECT * FROM rank_votes WHERE object_id = ANY($objectIds);
+
+-- 5. Authority claims
+SELECT * FROM object_authority WHERE object_id = ANY($objectIds);
 ```
 
-All four can be sent as a pipeline (single round-trip on most drivers). The application joins them in memory by `object_id` and `update_id`.
+All five can be sent as a pipeline (single round-trip on most drivers). The application joins them in memory by `object_id` and `update_id`.
 
 ### Step 4: Assemble ResolvedView
 
-Same as Mongo: group updates by update_type, resolve validity (votes + governance), resolve single/multi cardinality and ranking, apply visibility, shape API response.
+For each object, using the loaded rows, authority records, and the governance snapshot:
+
+1. **Compute curator set** `C = { ownership holders for (targetId, targetKind) from object_authority } ∩ { governance admins ∪ governance trusted }`.
+2. Group updates by `update_type`.
+3. Resolve validity per update:
+   - If `C` is non-empty, apply curator filter: an update is valid only if its `creator ∈ C` OR it has a positive validity vote from any member of `C`. Updates satisfying neither are treated as invalid regardless of other votes.
+   - If `C` is empty, apply normal vote semantics (votes + governance + precedence).
+4. Resolve single-cardinality updates (pick one valid value).
+5. Resolve multi-cardinality updates and apply ranking.
+6. Apply visibility options (e.g. omit rejected if `includeRejected=false`).
+7. Shape the API response (ResolvedView).
 
 ## Index strategy
 
@@ -210,8 +242,11 @@ Same as Mongo: group updates by update_type, resolve validity (votes + governanc
 | object_updates | (object_id, update_type) WHERE cardinality='single' | UNIQUE partial   | Enforce one active update per object+type |
 | validity_votes | (update_id, voter)                                  | UNIQUE           | One vote per voter per update             |
 | validity_votes | (object_id)                                         | B-tree           | Bulk load votes for an object             |
-| rank_votes     | (update_id, voter, rank_context)                    | UNIQUE           | One rank per voter per context            |
-| rank_votes     | (object_id)                                         | B-tree           | Bulk load ranks for an object             |
+| rank_votes       | (update_id, voter, rank_context)                    | UNIQUE           | One rank per voter per context                          |
+| rank_votes       | (object_id)                                         | B-tree           | Bulk load ranks for an object                           |
+| object_authority | (target_id, target_kind, username, authority_type)  | UNIQUE           | Primary key; upsert/delete by event.                    |
+| object_authority | (object_id, authority_type)                         | B-tree           | Load all ownership holders for an object (curator set). |
+| object_authority | (username)                                          | B-tree           | Find all targets a user holds authority over.           |
 
 
 ## Comparison to Mongo concept v2
@@ -219,7 +254,7 @@ Same as Mongo: group updates by update_type, resolve validity (votes + governanc
 
 | Aspect                     | Mongo concept v2                                               | PostgreSQL concept                                  |
 | -------------------------- | -------------------------------------------------------------- | --------------------------------------------------- |
-| Tables/collections         | 5 (core, updates, validity_votes, rank_votes, projection)      | 4 (no projection)                                   |
+| Tables/collections         | 6 (core, updates, validity_votes, rank_votes, projection, authority) | 5 (no projection)                              |
 | Projection                 | Separate document/table, must be kept in sync                  | None; query core tables directly                    |
 | Single-cardinality replace | Manual cascade: delete votes, delete update, update projection | DELETE update; CASCADE removes votes; no projection |
 | Consistency                | seq + coreSeqAtBuild for drift detection                       | ACID; seq for change tracking only                  |
@@ -280,9 +315,10 @@ For simple single-dimension searches you could query `object_updates` directly i
 
 ## Consistency model
 
-- **ACID**: Every write is one transaction. No drift between “core” and “projection” because there is no projection.
-- **CASCADE**: Deleting an object or an update removes dependent rows in child tables automatically.
+- **ACID**: Every content write is one transaction. No drift between “core” and “projection” because there is no projection.
+- **CASCADE**: Deleting an object or an update removes dependent rows in child tables automatically. \object_authority\ rows reference \object_id\ and should be removed when the object is deleted (FK with CASCADE or application-side).
 - **seq**: Kept for change tracking and optional consumers (e.g. incremental export); not required for correctness.
+- **Authority**: Authority events are written outside the content transaction. A failed authority write does not corrupt content state; the event can be replayed safely.
 
 
 

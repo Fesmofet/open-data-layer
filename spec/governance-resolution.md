@@ -20,6 +20,7 @@ All update types are **multi-cardinality** (accumulate, never replace). No lengt
 | `blacklist`       | text — Hive account name                 | Account flagged for reward eligibility (informational only, not enforced in V2) |
 | `whitelist`       | text — Hive account name                 | Account protected from appearing in the resolved `muted` set regardless of who muted them |
 | `inheritsFrom`    | text — `objectId` of another governance object | Merge `admin` and `trusted` lists from the referenced governance object into this one (one level only) |
+| `authority`       | text — Hive account name                 | When present, restricts object search scope to objects where at least one `authority` account holds an `object_authority` record (see [authority-entity.md](authority-entity.md)) |
 
 ## 3) Write rules
 
@@ -42,6 +43,7 @@ For each update type, include only entries where `update.creator == governance.c
 - `blacklist` → resolved set of account strings
 - `whitelist` → resolved set of account strings
 - `inheritsFrom` → resolved set of governance `objectId` strings
+- `authority` → resolved set of account strings
 
 ### Step 2: Resolve inherited admin and trusted
 
@@ -83,6 +85,7 @@ Whitelisted accounts are never present in the resolved `muted` set, regardless o
   blacklist:       string[];
   whitelist:       string[];
   inheritsFrom:    string[];
+  authority:       string[];
   muted:           string[];
 }
 ```
@@ -97,7 +100,21 @@ Whitelisted accounts are never present in the resolved `muted` set, regardless o
 
 Use case: a trusted account was compromised at a known date. The cutoff preserves the historical contribution while discarding post-compromise actions.
 
-## 6) Role domains
+## 6) authority filter semantics
+
+When the resolved `authority` set is non-empty, it acts as a **search scope restriction** applied before any other query filters.
+
+Query execution with a non-empty `authority`:
+
+1. Look up `object_authority` for all entries where `username ∈ authority` (any `authorityType`, any `targetKind = 'object'`).
+2. Collect the resulting set of `targetId` values — these are the **eligible object IDs**.
+3. Restrict the object search to only those eligible IDs. Objects not present in the eligible set are excluded from results entirely, regardless of other filters.
+
+When `authority` is empty, no scope restriction is applied — all objects are candidates.
+
+Use case: a governance context scoped to a specific curator's catalogue — only objects that curator has explicitly claimed authority over are visible in search results for that governance.
+
+## 8) Role domains
 
 Data domain:
 
@@ -110,7 +127,7 @@ Social domain:
 
 Role effects are domain-scoped and must not leak across domains.
 
-## 7) Caching and invalidation
+## 9) Caching and invalidation
 
 ### Cache key
 
@@ -128,17 +145,17 @@ At minimum:
 - Mute graph change for any account in `admins ∪ trusted` (including inherited),
 - TTL expiry.
 
-## 8) Governance ownership constraint
+## 10) Governance ownership constraint
 
 - Governance object updates are valid only when authored by the governance object `creator`.
 - Any non-creator update attempt must fail with `UNAUTHORIZED_GOVERNANCE_OP` at the indexer level (or be filtered at query layer).
 
-## 9) Determinism and observability
+## 11) Determinism and observability
 
 - Same indexed state and same governance `objectId` must produce the same snapshot hash.
 - Resolution logs should include: cache hit/miss, resolved_at_block, elapsed time.
 
-## 10) Optional trust signals (non-authoritative)
+## 12) Optional trust signals (non-authoritative)
 
 The following signals may inform auxiliary ranking or freshness scoring but must not replace authoritative governance rules:
 

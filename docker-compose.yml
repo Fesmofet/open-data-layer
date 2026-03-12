@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgis/postgis:18-3.6
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  chain-indexer:
+    build:
+      context: .
+      dockerfile: apps/chain-indexer/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  query-api:
+    build:
+      context: .
+      dockerfile: apps/query-api/Dockerfile
+    ports:
+      - "${QUERY_API_PORT:-3000}:3000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
